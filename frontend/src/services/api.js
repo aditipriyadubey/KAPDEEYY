@@ -1,21 +1,8 @@
+
 import { authConfigured } from "./supabase";
-import { errorMessage, http } from "./http";
+import { http } from "./http";
 import * as mockApi from "../mocks/mockApi";
 import { MOCK_USER } from "../mocks/data";
-
-// Clothing categories match the Roboflow annotation classes.
-export const CATEGORIES = ["Tops", "Bottoms", "Dresses", "Outerwear", "Shoes", "Bags", "Other"];
-
-// Occasions are separate from categories.
-export const OCCASIONS = ["College", "Casual", "Dinner", "Party"];
-
-// Style preferences - must match the backend schema values
-export const STYLES = ["Minimal", "Classic", "Casual", "Smart", "Street", "Romantic"];
-
-// Occasions are separate from categories.
-export const SEASONS = ["Spring", "Summer", "Autumn", "Winter", "All-season"];
-
-// PATTERNS = ["Solid", "Striped", "Floral", "Checked", "Printed", "Textured"];
 
 // Profile
 export async function getProfile() {
@@ -41,103 +28,39 @@ export async function updateProfile(patch) {
 export async function getWardrobe() {
   if (!authConfigured) return mockApi.getWardrobe();
 
-  try {
-    const res = await http.get("/wardrobe");
-    return res.data.map((item) => ({
-      ...item,
-      times_worn: item.times_worn ?? 0,
-    }));
-  } catch (err) {
-    throw new Error(errorMessage(err, "Couldn't load your closet."));
-  }
+  const res = await http.get("/wardrobe");
+  return res.data.map((item) => ({
+    ...item,
+    times_worn: item.times_worn ?? 0,
+  }));
 }
 
-// `imageFile` is optional so demo mode keeps working; real items upload it to
-// private Storage first and then save the returned path with the metadata.
-export async function addWardrobeItem(payload, imageFile) {
+export async function addWardrobeItem(payload) {
   if (!authConfigured) return mockApi.addWardrobeItem(payload);
 
-  let original_image_path = null;
-
-  try {
-    if (imageFile) {
-      const form = new FormData();
-      form.append("file", imageFile);
-      const uploaded = await http.post("/wardrobe/upload", form);
-      original_image_path = uploaded.data.path;
-    }
-
-    const res = await http.post("/wardrobe", {
-      ...payload,
-      original_image_path,
-    });
-
-    return { ...res.data, times_worn: 0 };
-  } catch (err) {
-    // Do not leave the uploaded file behind when the metadata could not be saved.
-    if (original_image_path) {
-      try {
-        await http.delete("/wardrobe/upload", {
-          params: { path: original_image_path },
-        });
-      } catch {
-        // Keep surfacing the original failure; rollback is best effort.
-      }
-    }
-
-    throw new Error(errorMessage(err, "Couldn't save this clothing item."));
-  }
-}
-
-// AI analysis can take up to a minute on CPU. The backend allows the worker
-// 120s, so give the browser request enough room to receive the real result.
-export async function analyzeWardrobeItem(id) {
-  if (!authConfigured) {
-    const error = new Error("AI analysis requires a signed-in wardrobe.");
-    error.status = 503;
-    throw error;
-  }
-
-  try {
-    const res = await http.post(`/wardrobe/${id}/analyze`, null, {
-      timeout: 180000,
-    });
-    return res.data;
-  } catch (err) {
-    const error = new Error(
-      errorMessage(err, "Couldn't analyze this clothing item.")
-    );
-    error.status = err?.response?.status;
-    throw error;
-  }
+  const res = await http.post("/wardrobe", payload);
+  return { ...res.data, times_worn: 0 };
 }
 
 export async function updateWardrobeItem(id, patch) {
   if (!authConfigured) return mockApi.updateWardrobeItem(id, patch);
 
-  try {
-    const res = await http.patch(`/wardrobe/${id}`, patch);
-    return res.data;
-  } catch (err) {
-    throw new Error(errorMessage(err, "Couldn't save changes."));
-  }
+  const res = await http.patch(`/wardrobe/${id}`, patch);
+  return { ...res.data, times_worn: 0 };
 }
 
 export async function deleteWardrobeItem(id) {
   if (!authConfigured) return mockApi.deleteWardrobeItem(id);
 
-  try {
-    const res = await http.delete(`/wardrobe/${id}`);
-    return res.data;
-  } catch (err) {
-    throw new Error(errorMessage(err, "Couldn't delete that item."));
-  }
+  const res = await http.delete(`/wardrobe/${id}`);
+  return res.data;
 }
 
-// ── Outfit generation ────────────────────────────────────────────────
+// Outfit generation using real wardrobe items
+const normalize = (value) =>
+  String(value || "").trim().toLowerCase();
 
-// Core generator that works with both mock and real data
-async function generateAndRegister(generatorPromise, occasion) {
+async function generateAndRegister(generatorPromise) {
   const result = await generatorPromise;
 
   // Keep demo mode unchanged
@@ -152,16 +75,16 @@ async function generateAndRegister(generatorPromise, occasion) {
     const matchedItems = [];
 
     for (const demoItem of template.items || []) {
-      const category = (demoItem.category || "").trim().toLowerCase();
-      const name = (demoItem.item_name || "").trim().toLowerCase();
-      const subcategory = (demoItem.subcategory || "").trim().toLowerCase();
+      const category = normalize(demoItem.category);
+      const name = normalize(demoItem.item_name);
+      const subcategory = normalize(demoItem.subcategory);
 
       // First: exact item name and category
       let match = wardrobe.find(
         (item) =>
           !usedIds.has(item.id) &&
-          (item.category || "").trim().toLowerCase() === category &&
-          (item.item_name || "").trim().toLowerCase() === name
+          normalize(item.category) === category &&
+          normalize(item.item_name) === name
       );
 
       // Second: matching subcategory and category
@@ -169,8 +92,8 @@ async function generateAndRegister(generatorPromise, occasion) {
         match = wardrobe.find(
           (item) =>
             !usedIds.has(item.id) &&
-            (item.category || "").trim().toLowerCase() === category &&
-            (item.subcategory || "").trim().toLowerCase() === subcategory
+            normalize(item.category) === category &&
+            normalize(item.subcategory) === subcategory
         );
       }
 
@@ -178,7 +101,8 @@ async function generateAndRegister(generatorPromise, occasion) {
       if (!match) {
         match = wardrobe.find(
           (item) =>
-            !usedIds.has(item.id) && (item.category || "").trim().toLowerCase() === category
+            !usedIds.has(item.id) &&
+            normalize(item.category) === category
         );
       }
 
@@ -218,43 +142,26 @@ async function generateAndRegister(generatorPromise, occasion) {
   };
 }
 
-// Generate outfits using real wardrobe
 export async function generateOutfits(occasion) {
   if (!authConfigured) return mockApi.generateOutfits(occasion);
 
-  return generateAndRegister(mockApi.generateOutfits(occasion), occasion);
+  return generateAndRegister(mockApi.generateOutfits(occasion));
 }
 
-// Remix outfits using real wardrobe
 export async function remixOutfits(occasion) {
   if (!authConfigured) return mockApi.remixOutfits(occasion);
 
-  return generateAndRegister(mockApi.remixOutfits(occasion), occasion);
+  return generateAndRegister(mockApi.remixOutfits(occasion));
 }
 
-// Surprise outfits using real wardrobe
 export async function surpriseOutfits() {
   if (!authConfigured) return mockApi.surpriseOutfits();
 
-  return generateAndRegister(mockApi.surpriseOutfits(), null);
+  return generateAndRegister(mockApi.surpriseOutfits());
 }
 
-// Optional: Direct recommendations endpoint
-export async function getRecommendations(occasion, style, includeAccessories = true) {
-  if (!authConfigured) return mockApi.getRecommendations();
-
-  try {
-    const res = await http.get("/outfits/recommendations", {
-      params: {
-        occasion,
-        style,
-        include_accessories: includeAccessories,
-      },
-    });
-    return res.data;
-  } catch (err) {
-    throw new Error(errorMessage(err, "Couldn't get recommendations."));
-  }
+export async function getTodayOutfit() {
+  return mockApi.getTodayOutfit();
 }
 
 // Saved Outfits
@@ -328,8 +235,4 @@ export async function getInsights() {
 
 export async function getAiStatus() {
   return mockApi.getAiStatus();
-}
-
-export async function getTodayOutfit() {
-  return mockApi.getTodayOutfit();
 }

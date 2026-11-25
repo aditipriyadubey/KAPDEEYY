@@ -1,7 +1,7 @@
 import GarmentImage from "./GarmentImage";
 
 /** Lays out 2–6 outfit items as a tidy grid. Always uses the real item images. */
-export default function OutfitCollage({ items, showLabels = true, className = "" }) {
+export default function OutfitCollage({ items, showLabels = false, className = "" }) {
   const count = items.length;
   const cols = count <= 4 ? 2 : 3;
   return (
@@ -10,7 +10,13 @@ export default function OutfitCollage({ items, showLabels = true, className = ""
       style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }}
     >
       {items.map((item) => (
-        <GarmentImage key={item.id} item={item} showLabel={showLabels} className="aspect-square" />
+        <GarmentImage
+          key={item.id}
+          item={item}
+          showLabel={showLabels}
+          className="aspect-square"
+          rounded="rounded-2xl"
+        />
       ))}
     </div>
   );

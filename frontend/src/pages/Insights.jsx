@@ -2,7 +2,6 @@ import { Link, useNavigate } from "react-router-dom";
 import { BarChart3 } from "lucide-react";
 import useAsync from "../hooks/useAsync";
 import { getInsights } from "../services/api";
-import PageHeader from "../components/ui/PageHeader";
 import GarmentImage from "../components/ui/GarmentImage";
 import OutfitCollage from "../components/ui/OutfitCollage";
 import { EmptyState, ErrorState, Spinner } from "../components/ui/Feedback";
@@ -10,23 +9,23 @@ import { EmptyState, ErrorState, Spinner } from "../components/ui/Feedback";
 function Section({ title, children, className = "" }) {
   return (
     <section className={className}>
-      <h2 className="mb-4 text-2xl">{title}</h2>
+      <h2 className="mb-4 font-display text-xl font-bold text-ink">{title}</h2>
       {children}
     </section>
   );
 }
 
-function Bars({ rows, tone = "bg-rose" }) {
+function Bars({ rows, tone = "bg-[#F46A6A]" }) {
   const max = Math.max(...rows.map((r) => r.count), 1);
   return (
     <ul className="space-y-3">
       {rows.map((r) => (
-        <li key={r.category} className="grid grid-cols-[92px_1fr_28px] items-center gap-3 text-sm">
-          <span className="truncate text-ink-soft">{r.category}</span>
-          <span className="h-2.5 overflow-hidden rounded-full bg-line" role="presentation">
-            <span className={`block h-full rounded-full ${tone}`} style={{ width: `${(r.count / max) * 100}%` }} />
+        <li key={r.category} className="grid grid-cols-[110px_1fr_32px] items-center gap-3 text-xs font-bold">
+          <span className="truncate text-black/60">{r.category}</span>
+          <span className="h-3 overflow-hidden rounded-full bg-gray-100" role="presentation">
+            <span className={`block h-full rounded-full ${tone} transition-all duration-500`} style={{ width: `${(r.count / max) * 100}%` }} />
           </span>
-          <span className="text-right tabular-nums">{r.count}</span>
+          <span className="text-right tabular-nums text-ink">{r.count}</span>
         </li>
       ))}
     </ul>
@@ -35,15 +34,15 @@ function Bars({ rows, tone = "bg-rose" }) {
 
 function ItemStrip({ items, caption }) {
   return (
-    <ul className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
+    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
       {items.map((i) => (
-        <li key={i.id}>
-          <GarmentImage item={i} className="aspect-[4/5]" rounded="rounded-card" />
-          <p className="mt-2 truncate text-sm font-medium">{i.item_name}</p>
-          <p className="text-xs text-ink-soft">{caption(i)}</p>
-        </li>
+        <div key={i.id} className="rounded-2xl bg-white border border-gray-100 p-2.5 shadow-2xs">
+          <GarmentImage item={i} className="aspect-[4/5] rounded-xl" />
+          <p className="mt-2 truncate text-xs font-bold text-ink">{i.item_name}</p>
+          <p className="text-[10px] text-black/45 font-semibold">{caption(i)}</p>
+        </div>
       ))}
-    </ul>
+    </div>
   );
 }
 
@@ -52,102 +51,97 @@ export default function Insights() {
   const navigate = useNavigate();
 
   return (
-    <>
-      <PageHeader eyebrow="Style insights" title="What your closet is telling you" />
+    <div className="space-y-8 pb-10">
+      <div className="pb-2 border-b border-gray-100">
+        <h1 className="font-display text-3xl font-extrabold text-ink">Wardrobe Insights 📊</h1>
+        <p className="text-sm font-semibold text-black/45 mt-0.5">Analyze what you actually wear and discover untried combinations.</p>
+      </div>
 
-      {loading && <Spinner label="Crunching your wardrobe" />}
+      {loading && <Spinner label="Analyzing your closet data" />}
       {error && <ErrorState message={error} onRetry={reload} />}
 
       {data && !data.sufficient_data && (
         <EmptyState
           icon={BarChart3}
           title="Not enough history yet"
-          message="Mark a few outfits as worn and your personal patterns will appear here. We never show made-up numbers."
-          action={<Link to="/studio" className="btn-primary">Find an outfit</Link>}
+          message="Mark a few outfits as worn and your personal patterns will appear here."
+          action={<Link to="/studio" className="btn-coral-save px-6 py-2.5 text-sm inline-block">Find an outfit</Link>}
         />
       )}
 
       {data?.sufficient_data && (
-        <div className="space-y-12">
-          <div className="grid gap-10 lg:grid-cols-2">
-            <Section title="Most-worn categories">
-              <Bars rows={data.categories_most} />
-            </Section>
-            <div className="space-y-10">
-              <Section title="Favourite shades">
-                <ul className="flex flex-wrap gap-4">
-                  {data.colours.map((c) => (
-                    <li key={c.colour} className="flex items-center gap-2 text-sm">
-                      <span className="h-6 w-6 rounded-full border border-ink/15" style={{ background: c.hex }} aria-hidden />
-                      <span>{c.colour}</span>
-                      <span className="text-ink-faint">{c.count}×</span>
-                    </li>
-                  ))}
-                </ul>
-              </Section>
-              <Section title="Least-worn categories">
-                <Bars rows={data.categories_least} tone="bg-sage" />
-              </Section>
-            </div>
+        <div className="space-y-10">
+          {/* Quick Repeat Stats Row */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
+            {[
+              [data.total_worn, "Total Outfits Worn", "bg-[#D7F0DC]", "text-[#215E39]"],
+              [data.repeat_stats.unique_outfits, "Unique Combinations", "bg-[#E5F4FC]", "text-[#2B8BB0]"],
+              [`${data.repeat_stats.repeat_rate}%`, "Repeat Rate", "bg-[#FFEAEF]", "text-[#F46A6A]"],
+            ].map(([v, l, bg, tc]) => (
+              <div key={l} className={`rounded-3xl ${bg} p-6 text-center shadow-xs`}>
+                <p className={`font-display text-4xl font-black ${tc}`}>{v}</p>
+                <p className="mt-1 text-xs font-bold text-black/60">{l}</p>
+              </div>
+            ))}
           </div>
 
-          <Section title="Repeat stats">
-            <div className="grid max-w-2xl grid-cols-3 gap-3">
-              {[
-                [data.total_worn, "outfits worn"],
-                [data.repeat_stats.unique_outfits, "different combinations"],
-                [`${data.repeat_stats.repeat_rate}%`, "were repeats"],
-              ].map(([v, l]) => (
-                <div key={l} className="card px-4 py-4">
-                  <p className="font-serif text-3xl">{v}</p>
-                  <p className="mt-1 text-xs text-ink-soft">{l}</p>
-                </div>
-              ))}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <Section title="Most-Worn Categories">
+              <div className="rounded-3xl bg-white border border-gray-100 p-6 shadow-xs">
+                <Bars rows={data.categories_most} />
+              </div>
+            </Section>
+
+            <Section title="Least-Worn Categories">
+              <div className="rounded-3xl bg-white border border-gray-100 p-6 shadow-xs">
+                <Bars rows={data.categories_least} tone="bg-[#215E39]" />
+              </div>
+            </Section>
+          </div>
+
+          {/* Favourite Colours */}
+          <Section title="Favourite Colors in Wardrobe">
+            <div className="rounded-3xl bg-white border border-gray-100 p-6 shadow-xs">
+              <ul className="flex flex-wrap gap-5">
+                {data.colours.map((c) => (
+                  <li key={c.colour} className="flex items-center gap-2.5 text-xs font-bold text-ink">
+                    <span className="h-6 w-6 rounded-full border border-black/10 shadow-xs" style={{ background: c.hex }} />
+                    <span>{c.colour}</span>
+                    <span className="text-black/40">({c.count}×)</span>
+                  </li>
+                ))}
+              </ul>
             </div>
           </Section>
 
-          <Section title="Favourite pieces">
+          {/* Favourite Pieces */}
+          <Section title="Most-Worn Pieces">
             <ItemStrip items={data.favourite_items} caption={(i) => `worn ${i.times_worn}×`} />
           </Section>
 
-          <Section title="Underused pieces">
-            {data.underused_items.length ? (
-              <ItemStrip items={data.underused_items} caption={() => "not worn yet"} />
-            ) : (
-              <p className="text-sm text-ink-soft">Every piece has been worn at least once. Nicely done.</p>
-            )}
-          </Section>
-
-          <Section title="Most frequent combinations">
-            <div className="grid gap-5 md:grid-cols-3">
-              {data.top_combinations.map(({ outfit, times_worn }) => (
-                <div key={outfit.id} className="card p-4">
-                  <OutfitCollage items={outfit.items} showLabels={false} />
-                  <p className="mt-3 font-medium">{outfit.outfit_name}</p>
-                  <p className="text-xs text-ink-soft">worn {times_worn}×</p>
+          {/* Combinations to try */}
+          <Section title="Combinations to Try Next">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {data.untried.slice(0, 3).map((o) => (
+                <div key={o.id} className="rounded-3xl bg-white border border-gray-100 p-5 shadow-xs flex flex-col justify-between">
+                  <div>
+                    <OutfitCollage items={o.items} showLabels={false} />
+                    <p className="mt-3 font-display text-base font-bold text-ink">{o.outfit_name}</p>
+                    <p className="mt-1 text-xs text-black/55 leading-relaxed">{o.styling_explanation}</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => navigate("/studio")}
+                    className="btn-coral-save w-full py-2.5 text-xs mt-4"
+                  >
+                    Try in Studio
+                  </button>
                 </div>
               ))}
             </div>
           </Section>
-
-          <Section title="Combinations to try">
-            {data.untried.length ? (
-              <div className="grid gap-5 md:grid-cols-3">
-                {data.untried.map((o) => (
-                  <div key={o.id} className="card flex flex-col p-4">
-                    <OutfitCollage items={o.items} showLabels={false} />
-                    <p className="mt-3 font-medium">{o.outfit_name}</p>
-                    <p className="mt-1 flex-1 text-sm text-ink-soft">{o.styling_explanation}</p>
-                    <button type="button" className="btn-secondary btn-sm mt-4" onClick={() => navigate("/studio")}>Try in Studio</button>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p className="text-sm text-ink-soft">You’ve tried every combination we can suggest.</p>
-            )}
-          </Section>
         </div>
       )}
-    </>
+    </div>
   );
 }

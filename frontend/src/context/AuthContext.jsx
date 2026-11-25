@@ -40,6 +40,9 @@ export function AuthProvider({ children }) {
   const [session, setSession] = useState(null);
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(authConfigured);
+  const [demoLoggedIn, setDemoLoggedIn] = useState(() => {
+    return localStorage.getItem("closet_remix_demo_auth") === "true";
+  });
 
   useEffect(() => {
     if (!authConfigured) return undefined;
@@ -108,11 +111,21 @@ export function AuthProvider({ children }) {
   }, [session?.user?.id]);
 
   const signIn = useCallback(async (email, password) => {
+    if (!authConfigured) {
+      setDemoLoggedIn(true);
+      localStorage.setItem("closet_remix_demo_auth", "true");
+      return;
+    }
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) throw error;
   }, []);
 
   const signUp = useCallback(async (fullName, email, password) => {
+    if (!authConfigured) {
+      setDemoLoggedIn(true);
+      localStorage.setItem("closet_remix_demo_auth", "true");
+      return { needsConfirmation: false };
+    }
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
@@ -123,17 +136,24 @@ export function AuthProvider({ children }) {
   }, []);
 
   const signOut = useCallback(async () => {
-    if (authConfigured) await supabase.auth.signOut();
+    if (authConfigured) {
+      await supabase.auth.signOut();
+    } else {
+      setDemoLoggedIn(false);
+      localStorage.removeItem("closet_remix_demo_auth");
+    }
   }, []);
 
   const user = useMemo(() => {
-    if (!authConfigured) return DEMO_USER;
+    if (!authConfigured) {
+      return demoLoggedIn ? DEMO_USER : null;
+    }
 
     const baseUser = toUser(session);
     if (!baseUser) return null;
 
     return profile ? { ...baseUser, ...profile, demo: false } : baseUser;
-  }, [session, profile]);
+  }, [session, profile, demoLoggedIn]);
 
   const value = useMemo(
     () => ({

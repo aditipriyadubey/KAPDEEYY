@@ -4,7 +4,6 @@ import { CalendarDays } from "lucide-react";
 import useAsync from "../hooks/useAsync";
 import { getHistory } from "../services/api";
 import { formatShort, isSameDay } from "../utils/format";
-import PageHeader from "../components/ui/PageHeader";
 import GarmentImage from "../components/ui/GarmentImage";
 import { EmptyState, ErrorState, Spinner } from "../components/ui/Feedback";
 
@@ -18,23 +17,25 @@ function Strip({ entries }) {
   }, [entries]);
 
   return (
-    <ol className="mb-10 grid grid-cols-7 gap-2 sm:gap-3" aria-label="Last 14 days">
-      {days.map(({ date, entry }) => {
-        const today = isSameDay(date, new Date());
-        return (
-          <li
-            key={date.toISOString()}
-            className={`flex aspect-[3/4] flex-col items-center rounded-lg border p-1.5 text-[11px] ${
-              entry ? "border-rose/40 bg-rose-tint" : "border-line bg-white/60"
-            } ${today ? "ring-1 ring-ink" : ""}`}
-            title={entry ? `${formatShort(date)} · ${entry.outfit.outfit_name}` : formatShort(date)}
-          >
-            <span className="text-ink-soft">{formatShort(date)}</span>
-            {entry && <GarmentImage item={entry.outfit.items[0]} className="mt-1.5 w-full flex-1 !bg-transparent" />}
-          </li>
-        );
-      })}
-    </ol>
+    <div className="mb-8 overflow-x-auto no-scrollbar pb-2">
+      <ol className="flex gap-3 min-w-max" aria-label="Last 14 days">
+        {days.map(({ date, entry }) => {
+          const today = isSameDay(date, new Date());
+          return (
+            <li
+              key={date.toISOString()}
+              className={`flex flex-col items-center rounded-2xl border p-3 w-20 transition-all duration-200 ${
+                entry ? "border-[#F46A6A]/40 bg-coral-tint" : "border-gray-200 bg-white"
+              } ${today ? "ring-2 ring-[#F46A6A] shadow-sm" : ""}`}
+              title={entry ? `${formatShort(date)} · ${entry.outfit.outfit_name}` : formatShort(date)}
+            >
+              <span className="text-xs font-bold text-black/50">{formatShort(date)}</span>
+              {entry && <GarmentImage item={entry.outfit.items[0]} className="mt-2 w-full h-14 !bg-transparent" />}
+            </li>
+          );
+        })}
+      </ol>
+    </div>
   );
 }
 
@@ -45,65 +46,69 @@ export default function History() {
   const repeated = entries.find((e) => e.repeated);
 
   return (
-    <>
-      <PageHeader
-        eyebrow="Rotation"
-        title="Every combination, remembered"
-        subtitle="Closet Remix tracks exact outfits, not just single pieces. Combinations worn recently are ranked lower in new suggestions."
-      />
+    <div className="space-y-6">
+      <div className="pb-2 border-b border-gray-100">
+        <h1 className="font-display text-3xl font-extrabold text-ink">Wear History 📅</h1>
+        <p className="text-sm font-semibold text-black/45 mt-0.5">Every combination you've worn, remembered automatically.</p>
+      </div>
 
-      {loading && <Spinner label="Loading your history" />}
+      {loading && <Spinner label="Loading your wear history" />}
       {error && <ErrorState message={error} onRetry={reload} />}
+
       {!loading && !error && entries.length === 0 && (
         <EmptyState
           icon={CalendarDays}
           title="No outfits worn yet"
-          message="When you tap “Mark as worn” on an outfit, it shows up here by date."
-          action={<Link to="/studio" className="btn-primary">Find an outfit</Link>}
+          message='When you tap "Mark as worn" on an outfit, it shows up here by date.'
+          action={<Link to="/studio" className="btn-coral-save px-6 py-2.5 text-sm inline-block">Find an outfit</Link>}
         />
       )}
 
       {!loading && entries.length > 0 && (
         <>
           {repeated && (
-            <div className="mb-6 flex flex-wrap items-center justify-between gap-4 border-l-2 border-rose pl-4">
-              <p className="text-sm text-ink-soft">
-                You’ve worn <strong className="font-medium text-ink">{repeated.outfit.outfit_name}</strong> {repeated.repeat_count} times in the
+            <div className="rounded-2xl bg-coral-tint p-5 flex flex-wrap items-center justify-between gap-4">
+              <p className="text-sm font-semibold text-ink">
+                You've worn <strong className="font-black text-[#F46A6A]">{repeated.outfit.outfit_name}</strong> {repeated.repeat_count} times in the
                 last two weeks: {repeated.outfit.items.map((i) => i.item_name).join(", ")}.
               </p>
-              <button type="button" className="btn-primary btn-sm" onClick={() => navigate("/studio")}>Explore something different</button>
+              <button type="button" className="btn-coral-save px-5 py-2 text-xs" onClick={() => navigate("/studio")}>Explore fresh looks</button>
             </div>
           )}
 
           <Strip entries={entries} />
 
-          <ol className="divide-y divide-line">
+          <ol className="space-y-4 pb-8">
             {entries.map((e) => (
-              <li key={e.id} className="grid gap-4 py-6 sm:grid-cols-[110px_auto_1fr] sm:items-center">
-                <div>
-                  <p className="font-serif text-2xl">{formatShort(e.worn_at)}</p>
-                  <p className="text-sm text-ink-soft">{e.occasion}</p>
+              <li key={e.id} className="rounded-3xl bg-white border border-gray-100 p-5 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div className="flex items-center gap-4">
+                  <div className="w-24 shrink-0">
+                    <p className="font-display text-xl font-bold text-ink">{formatShort(e.worn_at)}</p>
+                    <p className="text-xs font-semibold text-black/40">{e.occasion}</p>
+                  </div>
+
+                  <div className="flex gap-2 overflow-x-auto no-scrollbar">
+                    {e.outfit.items.slice(0, 4).map((it) => (
+                      <GarmentImage key={it.id} item={it} className="h-16 w-16 rounded-xl shrink-0" />
+                    ))}
+                  </div>
                 </div>
-                <div className="flex gap-2">
-                  {e.outfit.items.slice(0, 4).map((it) => (
-                    <GarmentImage key={it.id} item={it} className="h-16 w-16 sm:h-20 sm:w-20" />
-                  ))}
-                </div>
-                <div>
-                  <div className="mb-1.5 flex flex-wrap gap-1.5">
-                    <span className={`tag ${e.recently_worn ? "bg-rose-tint text-rose-deep" : "bg-sage-tint text-sage-deep"}`}>
+
+                <div className="text-left sm:text-right">
+                  <div className="mb-1.5 flex flex-wrap sm:justify-end gap-1.5">
+                    <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold ${e.recently_worn ? "bg-coral-tint text-[#F46A6A]" : "bg-[#D7F0DC] text-[#215E39]"}`}>
                       {e.recently_worn ? "Worn recently" : "Not worn lately"}
                     </span>
-                    {e.repeated && <span className="tag bg-lilac text-ink-soft">Repeated ×{e.repeat_count}</span>}
+                    {e.repeated && <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-gray-100 text-black/60">Repeated ×{e.repeat_count}</span>}
                   </div>
-                  <p className="font-medium">{e.outfit.outfit_name}</p>
-                  <p className="text-sm text-ink-soft">{e.outfit.items.map((i) => i.item_name).join(" · ")}</p>
+                  <p className="font-bold text-sm text-ink">{e.outfit.outfit_name}</p>
+                  <p className="text-xs text-black/45">{e.outfit.items.map((i) => i.item_name).join(" · ")}</p>
                 </div>
               </li>
             ))}
           </ol>
         </>
       )}
-    </>
+    </div>
   );
 }
