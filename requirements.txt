@@ -1,0 +1,8 @@
+streamlit
+rfdetr
+supervision
+pillow
+numpy
+google-genai
+ollama
+pydantic
