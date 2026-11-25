@@ -13,9 +13,9 @@ import {
 
 function Row({ label, value }) {
   return (
-    <div className="flex justify-between gap-4 border-b border-line py-2 text-sm last:border-0">
+    <div className="flex justify-between gap-4 border-b border-line py-2.5 text-sm last:border-0">
       <dt className="text-ink-soft">{label}</dt>
-      <dd className="text-right font-medium">{value || "—"}</dd>
+      <dd className="text-right font-semibold">{value || "—"}</dd>
     </div>
   );
 }
@@ -23,9 +23,9 @@ function Row({ label, value }) {
 function Select({ label, value, options, onChange }) {
   return (
     <label className="block text-sm text-ink-soft">
-      {label}
+      <span className="font-semibold">{label}</span>
       <select
-        className="field mt-1"
+        className="field mt-1.5"
         value={value || ""}
         onChange={(e) => onChange(e.target.value)}
       >
@@ -116,6 +116,7 @@ export default function ItemDetailModal({
         <GarmentImage
           item={item}
           className="aspect-square sm:aspect-[3/4]"
+          rounded="rounded-2xl"
         />
 
         {!editing ? (
@@ -137,7 +138,7 @@ export default function ItemDetailModal({
               {(item.suggested_occasions || []).map((occasion) => (
                 <span
                   key={occasion}
-                  className="tag bg-rose-tint text-rose-deep"
+                  className="tag bg-coral-tint text-coral-deep"
                 >
                   {occasion}
                 </span>
@@ -145,10 +146,9 @@ export default function ItemDetailModal({
             </div>
 
             {confirming ? (
-              <div className="mt-6 rounded-lg bg-rose-tint p-4 text-sm">
+              <div className="mt-6 rounded-2xl bg-coral-tint p-4 text-sm">
                 <p>
-                  Delete “{item.item_name}” from your wardrobe? This also
-                  removes any saved outfits and wear history that include it.
+                  Delete "{item.item_name}" from your wardrobe?
                   This action cannot be undone.
                 </p>
 
@@ -197,9 +197,9 @@ export default function ItemDetailModal({
         ) : (
           <form onSubmit={submit} className="space-y-3">
             <label className="block text-sm text-ink-soft">
-              Item name
+              <span className="font-semibold">Item name</span>
               <input
-                className="field mt-1"
+                className="field mt-1.5"
                 value={draft.item_name || ""}
                 onChange={(e) => set("item_name", e.target.value)}
                 maxLength={80}
@@ -215,27 +215,27 @@ export default function ItemDetailModal({
             />
 
             <label className="block text-sm text-ink-soft">
-              Subcategory
+              <span className="font-semibold">Subcategory</span>
               <input
-                className="field mt-1"
+                className="field mt-1.5"
                 value={draft.subcategory || ""}
                 onChange={(e) => set("subcategory", e.target.value)}
               />
             </label>
 
             <label className="block text-sm text-ink-soft">
-              Colour
+              <span className="font-semibold">Colour</span>
               <input
-                className="field mt-1"
+                className="field mt-1.5"
                 value={draft.colour || ""}
                 onChange={(e) => set("colour", e.target.value)}
               />
             </label>
 
             <label className="block text-sm text-ink-soft">
-              Colour code
+              <span className="font-semibold">Colour code</span>
               <input
-                className="field mt-1 h-11"
+                className="field mt-1.5 h-11"
                 type="color"
                 value={draft.colour_hex || "#EFEADF"}
                 onChange={(e) => set("colour_hex", e.target.value)}
@@ -264,23 +264,22 @@ export default function ItemDetailModal({
             />
 
             <div>
-              <p className="mb-2 text-sm text-ink-soft">
+              <p className="mb-2 text-sm font-semibold text-ink-soft">
                 Suitable occasions
               </p>
 
               <div className="flex flex-wrap gap-2">
                 {OCCASIONS.map((occasion) => (
-                  <label key={occasion} className="chip cursor-pointer">
-                    <input
-                      type="checkbox"
-                      className="mr-1.5"
-                      checked={(draft.suggested_occasions || []).includes(
-                        occasion
-                      )}
-                      onChange={() => toggleOccasion(occasion)}
-                    />
+                  <button
+                    key={occasion}
+                    type="button"
+                    className={`chip !py-1.5 !px-3.5 text-[13px] ${
+                      (draft.suggested_occasions || []).includes(occasion) ? "chip-active" : ""
+                    }`}
+                    onClick={() => toggleOccasion(occasion)}
+                  >
                     {occasion}
-                  </label>
+                  </button>
                 ))}
               </div>
             </div>

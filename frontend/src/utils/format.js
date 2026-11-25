@@ -32,7 +32,7 @@ export function isSameDay(a, b) {
 }
 
 /** Deterministic pastel tint class for an id so cards keep a stable background. */
-const TINTS = ["bg-sand", "bg-rose-tint", "bg-lilac", "bg-sage-tint"];
+const TINTS = ["bg-mint/40", "bg-coral-tint", "bg-pastel-lavender", "bg-pastel-pink", "bg-pastel-blue", "bg-pastel-yellow"];
 export function tintFor(id) {
   const s = String(id);
   let h = 0;

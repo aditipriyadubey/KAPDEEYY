@@ -5,7 +5,7 @@ export default function NotFound() {
   return (
     <EmptyState
       title="Page not found"
-      message="That page doesn’t exist in your closet."
+      message="That page doesn't exist in your closet."
       action={<Link to="/" className="btn-primary">Back to Today</Link>}
     />
   );

@@ -34,24 +34,27 @@ export default function GarmentImage({
   item,
   showLabel = false,
   className = "",
-  rounded = "rounded-lg",
+  rounded = "rounded-2xl",
 }) {
   const tint = tintFor(item.id);
   const shape = shapeFor(item.category, item.subcategory);
 
   return (
-    <div className={`relative flex items-center justify-center overflow-hidden ${tint} ${rounded} ${className}`}>
+    <div
+      title={item.item_name || "Clothing item"}
+      className={`relative flex items-center justify-center overflow-hidden ${tint} ${rounded} ${className} transition-all duration-200`}
+    >
       {item.image_url ? (
         <img
           src={item.image_url}
           alt={item.item_name || "Clothing item"}
-          className="h-full w-full object-contain p-3"
+          className="h-full w-full object-contain p-2.5"
           loading="lazy"
         />
       ) : (
         <svg
           viewBox="0 0 100 100"
-          className="h-[62%] w-[62%]"
+          className="h-[65%] w-[65%] drop-shadow-sm"
           role="img"
           aria-label={item.item_name || "Clothing item"}
         >
@@ -59,14 +62,14 @@ export default function GarmentImage({
             <path
               d="M34 42 Q34 18 50 18 Q66 18 66 42"
               fill="none"
-              stroke="rgba(48,45,42,0.35)"
+              stroke="rgba(48,45,42,0.3)"
               strokeWidth="3"
             />
           )}
           <path
             d={SHAPES[shape]}
             fill={item.colour_hex || "#CFC8BF"}
-            stroke="rgba(48,45,42,0.28)"
+            stroke="rgba(48,45,42,0.22)"
             strokeWidth="1.5"
             strokeLinejoin="round"
           />
@@ -74,7 +77,7 @@ export default function GarmentImage({
       )}
 
       {showLabel && (
-        <span className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-white/80 to-transparent px-2 pb-1.5 pt-4 text-[11px] leading-tight text-ink-soft">
+        <span className="absolute inset-x-0 bottom-0 bg-white/85 backdrop-blur-2xs px-1.5 py-0.5 text-[10px] font-bold text-center leading-tight text-ink truncate">
           {item.item_name}
         </span>
       )}

@@ -1,23 +1,29 @@
-
 import { useMemo, useState } from "react";
 import { Plus, Search, Shirt } from "lucide-react";
 import useAsync from "../hooks/useAsync";
 import {
   addWardrobeItem,
-  analyzeWardrobeItem,
   deleteWardrobeItem,
   getWardrobe,
   updateWardrobeItem,
 } from "../services/api";
-import { authConfigured } from "../services/supabase";
 import { CATEGORIES, OCCASIONS } from "../utils/constants";
-import { plural } from "../utils/format";
-import PageHeader from "../components/ui/PageHeader";
 import GarmentImage from "../components/ui/GarmentImage";
 import { CardSkeleton, EmptyState, ErrorState } from "../components/ui/Feedback";
 import AddClothingModal from "../components/AddClothingModal";
 import ItemDetailModal from "../components/ItemDetailModal";
 import Toast from "../components/ui/Toast";
+
+const CATEGORY_COLORS = {
+  All: "bg-[#FFEAEF] text-[#FF5C77] border-[#FBCFE8]",
+  Tops: "bg-[#E0F2FE] text-[#0369A1] border-[#BAE6FD]",
+  Bottoms: "bg-[#DCFCE7] text-[#15803D] border-[#BBF7D0]",
+  Dresses: "bg-[#FCE7F3] text-[#BE185D] border-[#FBCFE8]",
+  Outerwear: "bg-[#F3E8FF] text-[#7E22CE] border-[#E9D5FF]",
+  Shoes: "bg-[#FEF3C7] text-[#B45309] border-[#FDE68A]",
+  Bags: "bg-[#FFEDD5] text-[#C2410C] border-[#FED7AA]",
+  Other: "bg-[#F1F5F9] text-[#475569] border-[#E2E8F0]",
+};
 
 export default function Wardrobe() {
   const { data, loading, error, reload, setData } = useAsync(getWardrobe);
@@ -60,39 +66,13 @@ export default function Wardrobe() {
     setTimeout(() => setToast(null), 2400);
   };
 
-  const onAdd = async (payload, file) => {
+  const onAdd = async (payload) => {
     try {
-      const created = await addWardrobeItem(payload, file);
+      const created = await addWardrobeItem(payload);
       setData((current) => [created, ...(current || [])]);
-      flash("Item added to your wardrobe");
-      return created;
+      flash("Item added to wardrobe ✨");
     } catch (err) {
-      flash(err.message || "Couldn't add clothing item", "error");
-      throw err;
-    }
-  };
-
-  const onAnalyze = async (id) => {
-    try {
-      const result = await analyzeWardrobeItem(id);
-
-      // The analyze response carries the cutout's signed URL and the updated
-      // segmentation status, so the grid can show it as soon as this returns.
-      setData((current) =>
-        (current || []).map((i) =>
-          i.id === id ? { ...i, ...result.item } : i
-        )
-      );
-
-      return result;
-    } catch (err) {
-      // Analysis failures are persisted as `failed`; reflect that locally even
-      // though the user's original photo and metadata are untouched.
-      setData((current) =>
-        (current || []).map((i) =>
-          i.id === id ? { ...i, segmentation_status: "failed" } : i
-        )
-      );
+      flash("Couldn't add item", "error");
       throw err;
     }
   };
@@ -100,114 +80,113 @@ export default function Wardrobe() {
   const onSave = async (id, patch) => {
     try {
       const updated = await updateWardrobeItem(id, patch);
-
       setData((current) =>
         (current || []).map((i) =>
           i.id === id ? { ...i, ...updated } : i
         )
       );
-
-      flash("Changes saved");
-    } catch (err) {
-      flash(err.message || "Couldn't save changes", "error");
-      throw new Error(err.message || "Couldn't save changes");
+      flash("Changes saved ✓");
+    } catch {
+      flash("Couldn't save changes", "error");
+      throw new Error("Couldn't save changes");
     }
   };
 
   const onDelete = async (item) => {
     try {
       await deleteWardrobeItem(item.id);
-
       setData((current) =>
         (current || []).filter((i) => i.id !== item.id)
       );
-
       setSelectedId(null);
       flash("Item deleted");
-    } catch (err) {
-      flash(err.message || "Couldn't delete that item", "error");
+    } catch {
+      flash("Couldn't delete item", "error");
     }
   };
 
-  const filtersActive =
-    category !== "All" || occasion !== "All" || query.trim();
-
   return (
-    <>
-      <PageHeader
-        eyebrow="My wardrobe"
-        title={loading ? "Your closet" : plural(items.length, "piece")}
-        action={
-          <button
-            type="button"
-            className="btn-primary"
-            onClick={() => setAdding(true)}
-          >
-            <Plus className="h-4 w-4" />
-            Add clothing
-          </button>
-        }
-      />
+    <div className="space-y-6">
+      {/* ─── Header ─── */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-[#F5E6EB]">
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-[#1F1D1E]">
+            My Wardrobe 👗
+          </h1>
+          <p className="text-xs sm:text-sm font-bold text-[#8C7A82] mt-0.5">
+            {items.length} {items.length === 1 ? "piece" : "pieces"} in your colorful closet
+          </p>
+        </div>
 
-      <div
-        className="mb-5 flex flex-wrap gap-2"
-        role="group"
-        aria-label="Filter by category"
-      >
-        {["All", ...CATEGORIES].map((c) => (
-          <button
-            key={c}
-            type="button"
-            className={`chip ${category === c ? "chip-active" : ""}`}
-            aria-pressed={category === c}
-            onClick={() => setCategory(c)}
-          >
-            {c}
-          </button>
-        ))}
+        <button
+          type="button"
+          onClick={() => setAdding(true)}
+          className="btn-coral-save flex items-center gap-2 px-5 py-2.5 text-xs sm:text-sm font-bold shadow-md w-max"
+        >
+          <Plus className="h-4 w-4 stroke-[3]" />
+          <span>Add Clothing</span>
+        </button>
       </div>
 
-      <div className="mb-8 flex flex-wrap gap-3">
-        <div className="relative w-full sm:w-72">
-          <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-faint" />
+      {/* ─── Playful Candy Category Filter Pills ─── */}
+      <div className="flex gap-2 overflow-x-auto no-scrollbar py-1">
+        {["All", ...CATEGORIES].map((c) => {
+          const isSelected = category === c;
+          const candyStyle = CATEGORY_COLORS[c] || "bg-gray-100 text-black/60";
+          return (
+            <button
+              key={c}
+              type="button"
+              onClick={() => setCategory(c)}
+              className={`px-4 py-2 rounded-full text-xs font-bold transition-all shrink-0 border ${
+                isSelected
+                  ? `${candyStyle} shadow-sm scale-105 font-extrabold`
+                  : "bg-white text-black/55 border-gray-200 hover:border-gray-300"
+              }`}
+            >
+              {c}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* ─── Search & Occasion Filter ─── */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="relative flex-1">
+          <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-black/40" />
           <input
-            className="field !pl-10"
-            placeholder="Search your closet"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            aria-label="Search your closet"
+            placeholder="Search items, colors, styles..."
+            className="w-full rounded-full border-2 border-[#FCE4EC] bg-white pl-10 pr-4 py-2.5 text-xs font-bold text-ink placeholder:text-black/35 focus:border-[#FF5C77] focus:outline-none transition-colors"
           />
         </div>
 
         <select
-          className="field !w-auto"
           value={occasion}
           onChange={(e) => setOccasion(e.target.value)}
-          aria-label="Filter by occasion"
+          className="rounded-full border-2 border-[#FCE4EC] bg-white px-4 py-2.5 text-xs font-bold text-ink focus:border-[#FF5C77] focus:outline-none cursor-pointer"
         >
-          <option value="All">All occasions</option>
+          <option value="All">All Occasions</option>
           {OCCASIONS.map((o) => (
-            <option key={o} value={o}>
-              {o}
-            </option>
+            <option key={o} value={o}>{o}</option>
           ))}
         </select>
       </div>
 
       {loading && <CardSkeleton count={8} />}
-
       {error && <ErrorState message={error} onRetry={reload} />}
 
       {!loading && !error && items.length === 0 && (
         <EmptyState
           icon={Shirt}
           title="Your closet is empty"
-          message="Add your first piece — snap a photo or pick one from your gallery."
+          message="Tap Add Clothing to upload your first favorite piece!"
           action={
             <button
               type="button"
-              className="btn-primary"
               onClick={() => setAdding(true)}
+              className="btn-coral-save px-6 py-2.5 text-xs"
             >
               Add clothing
             </button>
@@ -215,71 +194,39 @@ export default function Wardrobe() {
         />
       )}
 
-      {!loading && !error && items.length > 0 && filtered.length === 0 && (
-        <EmptyState
-          icon={Search}
-          title="Nothing matches"
-          message="Try a different search or clear your filters."
-          action={
-            filtersActive && (
-              <button
-                type="button"
-                className="btn-secondary"
-                onClick={() => {
-                  setCategory("All");
-                  setOccasion("All");
-                  setQuery("");
-                }}
-              >
-                Clear filters
-              </button>
-            )
-          }
-        />
-      )}
-
+      {/* ─── Playful Responsive Garments Grid ─── */}
       {!loading && !error && filtered.length > 0 && (
-        <ul className="grid grid-cols-2 gap-4 sm:grid-cols-3 sm:gap-5 lg:grid-cols-4 xl:grid-cols-5">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 sm:gap-5 pb-8">
           {filtered.map((item) => (
-            <li key={item.id}>
-              <button
-                type="button"
-                className="group block w-full text-left"
-                onClick={() => setSelectedId(item.id)}
-              >
-                <GarmentImage
-                  item={item}
-                  className="aspect-[4/5] transition duration-200 group-hover:shadow-card group-hover:-translate-y-0.5"
-                  rounded="rounded-card"
-                />
-
-                <p className="mt-2.5 truncate text-sm font-medium">
+            <div
+              key={item.id}
+              onClick={() => setSelectedId(item.id)}
+              className="cursor-pointer group playful-card p-3 shadow-xs hover:shadow-card-hover transition-all active:scale-[0.98]"
+            >
+              <GarmentImage
+                item={item}
+                className="aspect-[4/5] rounded-2xl group-hover:scale-103 transition-transform"
+              />
+              <div className="mt-2.5 px-1">
+                <p className="truncate text-xs sm:text-sm font-bold text-[#1F1D1E]">
                   {item.item_name}
                 </p>
-
-                <p className="truncate text-xs text-ink-soft">
-                  {[item.category, item.subcategory]
-                    .filter(Boolean)
-                    .join(" · ")}{" "}
-                  · worn {item.times_worn ?? 0}×
-                </p>
-
-                <p className="truncate text-xs text-ink-faint">
-                  {[item.colour, item.pattern].filter(Boolean).join(" · ") ||
-                    "—"}
-                </p>
-              </button>
-            </li>
+                <div className="flex items-center justify-between mt-1 text-[10px] font-bold text-black/50">
+                  <span className="truncate">{item.category}</span>
+                  <span className="rounded-full bg-[#FFEAEF] text-[#FF5C77] px-2 py-0.5 shrink-0">
+                    {item.times_worn ?? 0}×
+                  </span>
+                </div>
+              </div>
+            </div>
           ))}
-        </ul>
+        </div>
       )}
 
       <AddClothingModal
         open={adding}
         onClose={() => setAdding(false)}
         onSave={onAdd}
-        onAnalyze={onAnalyze}
-        canAnalyze={authConfigured}
       />
 
       <ItemDetailModal
@@ -290,6 +237,6 @@ export default function Wardrobe() {
       />
 
       <Toast toast={toast} />
-    </>
+    </div>
   );
 }

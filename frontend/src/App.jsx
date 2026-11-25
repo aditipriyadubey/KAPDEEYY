@@ -2,6 +2,7 @@ import { Route, Routes } from "react-router-dom";
 import AppLayout from "./layouts/AppLayout";
 import Today from "./pages/Today";
 import Wardrobe from "./pages/Wardrobe";
+import AddItem from "./pages/AddItem";
 import OutfitStudio from "./pages/OutfitStudio";
 import Saved from "./pages/Saved";
 import History from "./pages/History";
@@ -19,6 +20,7 @@ export default function App() {
       <Route element={<AppLayout />}>
         <Route index element={<Today />} />
         <Route path="wardrobe" element={<Wardrobe />} />
+        <Route path="add" element={<AddItem />} />
         <Route path="studio" element={<OutfitStudio />} />
         <Route path="saved" element={<Saved />} />
         <Route path="history" element={<History />} />

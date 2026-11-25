@@ -101,18 +101,6 @@ export async function getProfile() {
   return { ...MOCK_USER };
 }
 
-// Recommendations (mock) ─────────────────────────────────────────────
-export async function getRecommendations() {
-  await delay(300);
-
-  // Return empty recommendations in mock mode
-  return {
-    mode: "generate",
-    occasion: null,
-    outfits: [],
-  };
-}
-
 // ── wardrobe ────────────────────────────────────────────────────
 export async function getWardrobe() {
   await delay();

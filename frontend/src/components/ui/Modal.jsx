@@ -17,13 +17,13 @@ export default function Modal({ open, onClose, title, children, wide = false }) 
   if (!open) return null;
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center sm:p-6" role="dialog" aria-modal="true" aria-label={title}>
-      <div className="absolute inset-0 bg-ink/40" onClick={onClose} />
+      <div className="absolute inset-0 bg-ink/30 backdrop-blur-sm" onClick={onClose} />
       <div
-        className={`fade-up relative max-h-[92vh] w-full overflow-y-auto rounded-t-2xl bg-ivory p-6 shadow-xl sm:rounded-2xl ${wide ? "sm:max-w-3xl" : "sm:max-w-lg"}`}
+        className={`animate-slide-up relative max-h-[92vh] w-full overflow-y-auto rounded-t-3xl bg-white p-6 shadow-xl sm:rounded-3xl ${wide ? "sm:max-w-3xl" : "sm:max-w-lg"}`}
       >
         <div className="mb-5 flex items-start justify-between gap-4">
-          <h2 className="text-2xl">{title}</h2>
-          <button type="button" onClick={onClose} className="btn-ghost -mr-2 -mt-1 !p-2" aria-label="Close">
+          <h2 className="font-display text-xl font-bold">{title}</h2>
+          <button type="button" onClick={onClose} className="flex h-8 w-8 items-center justify-center rounded-xl bg-line/60 text-ink-soft hover:bg-line hover:text-ink transition-colors" aria-label="Close">
             <X className="h-4 w-4" />
           </button>
         </div>
