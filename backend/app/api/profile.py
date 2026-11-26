@@ -6,6 +6,7 @@ from app.core.auth import AuthUser, get_current_user
 from app.core.config import Settings, get_settings
 from app.core.http import get_http
 from app.database.sqlite_adapter import SQLiteUserDB, _make_sqlite_db
+from app.database.supabase_rest import UserDB
 from app.schemas.profile import ProfileOut, ProfileUpdate
 
 router = APIRouter(prefix="/profile", tags=["profile"])
@@ -21,7 +22,6 @@ def _db(client: httpx.AsyncClient | None = Depends(get_http),
         db_path = Path(settings.sqlite_file)
         return SQLiteUserDB(db_path, user.id, settings)
     # ── Supabase mode (original) ───────────────────────────────
-    from app.database.supabase_rest import UserDB
     if client is None:
         raise HTTPException(status.HTTP_500_INTERNAL_SERVER_ERROR,
                             "HTTP client required for Supabase mode")
