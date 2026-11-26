@@ -2,61 +2,17 @@ import { createContext, useContext, useEffect, useState } from "react";
 
 const NotificationContext = createContext(null);
 
-const DEFAULT_NOTIFICATIONS = [
-  {
-    id: "notif-1",
-    category: "Today's Outfit",
-    title: "Casual Autumn is styled for you!",
-    message: "Soft cream cardigan paired with straight denim and white sneakers. Tap to view your look.",
-    time: "8:00 AM",
-    read: false,
-    badgeColor: "bg-[#D7F0DC] text-[#124C27]",
-    iconType: "shirt",
-    actionPath: "/",
-  },
-  {
-    id: "notif-2",
-    category: "Weather & Style",
-    title: "Sunny & 22°C outside",
-    message: "Brisk morning weather! Perfect for lightweight knitwear and breezy layering.",
-    time: "9:15 AM",
-    read: false,
-    badgeColor: "bg-[#BAE6FD] text-[#0369A1]",
-    iconType: "weather",
-  },
-  {
-    id: "notif-3",
-    category: "Wardrobe Remix",
-    title: "Time to remix your denim!",
-    message: "You haven't worn your Blue Straight-Leg Jeans in 14 days. We put together fresh combinations for it.",
-    time: "11:30 AM",
-    read: false,
-    badgeColor: "bg-[#FFEAEF] text-[#FF5C77]",
-    iconType: "sparkles",
-    actionPath: "/studio",
-  },
-  {
-    id: "notif-4",
-    category: "New Pairing",
-    title: "3 fresh matches discovered",
-    message: "AI Stylist matched your Black Fitted Tee with 3 autumn jackets in your closet.",
-    time: "Yesterday",
-    read: true,
-    badgeColor: "bg-[#FFF4CC] text-[#92400E]",
-    iconType: "sparkles",
-    actionPath: "/studio",
-  },
-];
-
-const STORAGE_KEY = "kapdeeyy_notifications_v1";
+// Bumped to v2 so notifications seeded by earlier builds are not replayed.
+const STORAGE_KEY = "kapdeeyy_notifications_v2";
 
 export function NotificationProvider({ children }) {
   const [notifications, setNotifications] = useState(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEY);
-      return saved ? JSON.parse(saved) : DEFAULT_NOTIFICATIONS;
+      const parsed = saved ? JSON.parse(saved) : [];
+      return Array.isArray(parsed) ? parsed : [];
     } catch {
-      return DEFAULT_NOTIFICATIONS;
+      return [];
     }
   });
 
@@ -65,8 +21,8 @@ export function NotificationProvider({ children }) {
   useEffect(() => {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(notifications));
-    } catch (e) {
-      console.error("Failed to persist notifications", e);
+    } catch {
+      // Notification state is a convenience; storage failures must not break the app.
     }
   }, [notifications]);
 
@@ -90,10 +46,6 @@ export function NotificationProvider({ children }) {
     setNotifications([]);
   };
 
-  const resetDaily = () => {
-    setNotifications(DEFAULT_NOTIFICATIONS);
-  };
-
   return (
     <NotificationContext.Provider
       value={{
@@ -106,7 +58,6 @@ export function NotificationProvider({ children }) {
         markAllAsRead,
         dismiss,
         clearAll,
-        resetDaily,
       }}
     >
       {children}

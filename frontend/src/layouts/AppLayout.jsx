@@ -1,128 +1,109 @@
-import { useState } from "react";
-import { Link, NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
-import { Bell, Bookmark, CalendarDays, Home, LogOut, Plus, Search, Shirt, ShoppingBag, Sparkles, TrendingUp, User } from "lucide-react";
+import { Link, NavLink, Outlet, useNavigate } from "react-router-dom";
+import {
+  Bookmark,
+  CalendarDays,
+  Home,
+  Layers,
+  LogOut,
+  Plus,
+  Shirt,
+  TrendingUp,
+} from "lucide-react";
 import { useAuth } from "../context/AuthContext";
-import AddClothingModal from "../components/AddClothingModal";
-import { addWardrobeItem } from "../services/api";
-import Toast from "../components/ui/Toast";
 import NotificationModal from "../components/NotificationModal";
-import { useNotifications } from "../context/NotificationContext";
 
 const NAV_LINKS = [
   { to: "/", label: "Today", icon: Home, end: true },
   { to: "/wardrobe", label: "Wardrobe", icon: Shirt },
-  { to: "/studio", label: "Studio", icon: Sparkles },
+  { to: "/studio", label: "Studio", icon: Layers },
   { to: "/saved", label: "Saved", icon: Bookmark },
   { to: "/history", label: "History", icon: CalendarDays },
   { to: "/insights", label: "Insights", icon: TrendingUp },
 ];
 
+function Wordmark({ compact = false }) {
+  return (
+    <Link to="/" className="flex items-center gap-2.5">
+      <span className="flex h-7 w-7 items-center justify-center rounded bg-ink text-[12px] font-semibold tracking-wide text-white">
+        K
+      </span>
+      <span
+        className={`font-display font-normal uppercase tracking-[0.22em] text-ink ${
+          compact ? "text-base" : "text-lg"
+        }`}
+      >
+        Kapdeeyy
+      </span>
+    </Link>
+  );
+}
+
 export default function AppLayout() {
-  const { user, signOut } = useAuth();
+  const { signOut } = useAuth();
   const navigate = useNavigate();
-  const location = useLocation();
-
-  const [addingModal, setAddingModal] = useState(false);
-  const { unreadCount, openNotifications } = useNotifications();
-  const [toast, setToast] = useState(null);
-
-  const flash = (message, type = "ok") => {
-    setToast({ message, type });
-    setTimeout(() => setToast(null), 2500);
-  };
-
-  const handleQuickAdd = async (payload) => {
-    try {
-      await addWardrobeItem(payload);
-      flash("Item added to your wardrobe ✨");
-    } catch {
-      flash("Couldn't add clothing item", "error");
-    }
-  };
 
   return (
-    <div className="min-h-screen bg-[#FFF9F9] flex flex-col text-ink font-sans">
-      
-      {/* ─── Desktop Header (hidden on mobile, visible on md+) ─── */}
-      <header className="hidden md:block sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-[#F5EBEF] shadow-2xs">
-        <div className="max-w-5xl mx-auto px-6 h-20 flex items-center justify-between gap-6">
-          
-          {/* Logo */}
-          <Link to="/" className="flex items-center gap-2 group">
-            <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-[#FFEAEF] text-[#F46A6A] group-hover:scale-105 transition-transform">
-              <Sparkles className="h-5 w-5" />
-            </span>
-            <span className="font-sans font-extrabold text-2xl tracking-tight text-ink">
-              KAPDEEYY<span className="text-[#F46A6A]">!</span>
-            </span>
-          </Link>
+    <div className="flex min-h-screen flex-col bg-canvas text-ink">
+      {/* ─── Desktop header ─── */}
+      <header className="sticky top-0 z-40 hidden border-b border-line bg-surface md:block">
+        <div className="mx-auto flex h-16 max-w-5xl items-center justify-between gap-8 px-6">
+          <Wordmark />
 
-          {/* Desktop Nav Pills */}
-          <nav className="flex items-center gap-1.5" aria-label="Main navigation">
-            {NAV_LINKS.map(({ to, label, icon: Icon, end }) => (
+          <nav className="flex items-center gap-7" aria-label="Main navigation">
+            {NAV_LINKS.map(({ to, label, end }) => (
               <NavLink
                 key={to}
                 to={to}
                 end={end}
                 className={({ isActive }) =>
-                  `flex items-center gap-2 px-4 py-2 rounded-full text-sm font-bold transition-all duration-200 ${
+                  `border-b-2 py-1 text-sm transition-colors ${
                     isActive
-                      ? "bg-[#D7F0DC] text-[#215E39] shadow-2xs"
-                      : "text-black/60 hover:text-black hover:bg-black/5"
+                      ? "border-accent font-semibold text-ink"
+                      : "border-transparent text-ink-soft hover:border-line hover:text-ink"
                   }`
                 }
               >
-                <Icon className="h-4 w-4" />
-                <span>{label}</span>
+                {label}
               </NavLink>
             ))}
           </nav>
 
-          {/* Right Action Tools */}
           <div className="flex items-center gap-3">
             <button
               type="button"
               onClick={() => navigate("/add")}
-              className="flex items-center gap-2 rounded-full bg-[#F46A6A] px-5 py-2.5 text-sm font-bold text-white shadow-[0_4px_14px_rgba(244,106,106,0.35)] hover:bg-[#E05252] active:scale-95 transition-all"
+              className="btn-primary px-4 py-2 text-[13px]"
             >
-              <Plus className="h-4 w-4 stroke-[3]" />
-              <span>Add Item</span>
+              <Plus className="h-4 w-4" strokeWidth={2.2} />
+              Add Item
             </button>
-
             <button
               type="button"
               onClick={() => {
                 signOut();
                 navigate("/login");
               }}
-              className="flex items-center gap-1 text-xs font-bold text-[#F46A6A] hover:underline px-2 py-1"
-              title="Sign out & Splash screen"
+              className="flex items-center gap-1.5 text-[13px] font-medium text-ink-soft transition-colors hover:text-ink"
+              title="Sign out"
             >
               <LogOut className="h-4 w-4" />
+              <span>Sign out</span>
             </button>
           </div>
         </div>
       </header>
 
-      {/* ─── Mobile Top Bar (visible only on mobile) ─── */}
-      <header className="md:hidden sticky top-0 z-30 bg-white/95 backdrop-blur-md border-b border-[#F5EBEF] px-4 py-3 flex items-center justify-between">
-        <Link to="/" className="flex items-center gap-2">
-          <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-[#FFEAEF] text-[#F46A6A]">
-            <Sparkles className="h-4 w-4" />
-          </span>
-          <span className="font-sans font-extrabold text-xl tracking-tight text-ink">
-            KAPDEEYY<span className="text-[#F46A6A]">!</span>
-          </span>
-        </Link>
-
-        <div className="flex items-center gap-2">
+      {/* ─── Mobile header ─── */}
+      <header className="sticky top-0 z-30 flex items-center justify-between border-b border-line bg-surface px-4 py-3 md:hidden">
+        <Wordmark compact />
+        <div className="flex items-center gap-1.5">
           <button
             type="button"
             onClick={() => navigate("/add")}
-            className="flex h-8 w-8 items-center justify-center rounded-full bg-[#F46A6A] text-white shadow-xs"
+            className="flex h-8 w-8 items-center justify-center rounded bg-accent text-white"
             aria-label="Add item"
           >
-            <Plus className="h-4 w-4 stroke-[3]" />
+            <Plus className="h-4 w-4" strokeWidth={2.4} />
           </button>
           <button
             type="button"
@@ -130,98 +111,85 @@ export default function AppLayout() {
               signOut();
               navigate("/login");
             }}
-            className="flex h-8 w-8 items-center justify-center rounded-full bg-[#FFEAEF] text-[#F46A6A]"
+            className="flex h-8 w-8 items-center justify-center rounded border border-line text-ink-soft"
             aria-label="Sign out"
           >
-            <LogOut className="h-3.5 w-3.5" />
+            <LogOut className="h-4 w-4" />
           </button>
         </div>
       </header>
 
-      {/* ─── Main Content Canvas (Mobile-first responsive container) ─── */}
-      <main className="flex-1 w-full max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-7 pb-24 md:pb-12">
+      <main className="mx-auto w-full max-w-4xl flex-1 px-4 pb-24 pt-6 sm:px-6 md:pb-14 md:pt-10 lg:px-8">
         <Outlet />
       </main>
 
-      {/* ─── Mobile Bottom Navigation Bar (Phone-perfect from Reference Image 2) ─── */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-[#F5EBEF] px-3 pt-1.5 pb-[max(0.5rem,env(safe-area-inset-bottom))] shadow-[0_-4px_20px_rgba(0,0,0,0.04)]">
-        <div className="flex items-center justify-around max-w-md mx-auto">
-          {/* Home */}
+      {/* ─── Mobile bottom navigation ─── */}
+      <nav
+        className="fixed bottom-0 left-0 right-0 z-40 border-t border-line bg-surface pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-1.5 md:hidden"
+        aria-label="Mobile navigation"
+      >
+        <div className="mx-auto flex max-w-md items-center justify-around">
           <NavLink
             to="/"
             end
             className={({ isActive }) =>
-              `flex flex-col items-center gap-0.5 py-1 px-3 text-[11px] font-bold transition-colors ${
-                isActive ? "text-[#F46A6A]" : "text-black/40 hover:text-black/70"
+              `flex flex-col items-center gap-1 px-3 py-1 text-[10px] font-medium transition-colors ${
+                isActive ? "text-accent" : "text-ink-faint hover:text-ink"
               }`
             }
           >
-            <Home className="h-5 w-5" />
+            <Home className="h-5 w-5" strokeWidth={1.8} />
             <span>Home</span>
           </NavLink>
 
-          {/* Market / Wardrobe */}
           <NavLink
             to="/wardrobe"
             className={({ isActive }) =>
-              `flex flex-col items-center gap-0.5 py-1 px-3 text-[11px] font-bold transition-colors ${
-                isActive ? "text-[#F46A6A]" : "text-black/40 hover:text-black/70"
+              `flex flex-col items-center gap-1 px-3 py-1 text-[10px] font-medium transition-colors ${
+                isActive ? "text-accent" : "text-ink-faint hover:text-ink"
               }`
             }
           >
-            <ShoppingBag className="h-5 w-5" />
-            <span>Market</span>
+            <Shirt className="h-5 w-5" strokeWidth={1.8} />
+            <span>Wardrobe</span>
           </NavLink>
 
-          {/* Elevated Coral Plus Button in Center */}
           <button
             type="button"
             onClick={() => navigate("/add")}
-            className="-mt-5 flex h-13 w-13 items-center justify-center rounded-full bg-[#F46A6A] text-white shadow-[0_6px_20px_rgba(244,106,106,0.45)] active:scale-95 transition-transform"
+            className="-mt-4 flex h-12 w-12 items-center justify-center rounded-full bg-accent text-white shadow-lift active:scale-95"
             aria-label="Add item"
           >
-            <Plus className="h-6 w-6 stroke-[3]" />
+            <Plus className="h-5 w-5" strokeWidth={2.2} />
           </button>
 
-          {/* For you / Studio */}
           <NavLink
             to="/studio"
             className={({ isActive }) =>
-              `flex flex-col items-center gap-0.5 py-1 px-3 text-[11px] font-bold transition-colors ${
-                isActive ? "text-[#F46A6A]" : "text-black/40 hover:text-black/70"
+              `flex flex-col items-center gap-1 px-3 py-1 text-[10px] font-medium transition-colors ${
+                isActive ? "text-accent" : "text-ink-faint hover:text-ink"
               }`
             }
           >
-            <Sparkles className="h-5 w-5" />
-            <span>For you</span>
+            <Layers className="h-5 w-5" strokeWidth={1.8} />
+            <span>Studio</span>
           </NavLink>
 
-          {/* Profile / Saved */}
           <NavLink
             to="/saved"
             className={({ isActive }) =>
-              `flex flex-col items-center gap-0.5 py-1 px-3 text-[11px] font-bold transition-colors ${
-                isActive ? "text-[#F46A6A]" : "text-black/40 hover:text-black/70"
+              `flex flex-col items-center gap-1 px-3 py-1 text-[10px] font-medium transition-colors ${
+                isActive ? "text-accent" : "text-ink-faint hover:text-ink"
               }`
             }
           >
-            <User className="h-5 w-5" />
-            <span>Profile</span>
+            <Bookmark className="h-5 w-5" strokeWidth={1.8} />
+            <span>Saved</span>
           </NavLink>
         </div>
       </nav>
 
-      {/* Global Add Item Modal */}
-      <AddClothingModal
-        open={addingModal}
-        onClose={() => setAddingModal(false)}
-        onSave={handleQuickAdd}
-      />
-
-      {/* Global Daily Notifications Modal */}
       <NotificationModal />
-
-      <Toast toast={toast} />
     </div>
   );
 }

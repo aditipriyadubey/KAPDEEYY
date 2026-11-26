@@ -213,12 +213,23 @@ def _classify(cutout: Image.Image) -> dict[str, Any]:
 
 
 def analyze(image: Image.Image, threshold: float) -> dict[str, Any]:
-    # The lock covers segmentation AND classification; the GPU only runs one
-    # job at a time even if several requests arrive together.
+    # The GPU lock covers segmentation only; classification is an optional
+    # network call that must never block or fail a successful segmentation.
     with _GPU_LOCK:
         load_model()
         cutout, label, confidence = _segment(image, threshold)
+
+    analysis: dict[str, Any] = {}
+    source = "Unavailable (Gemini) - manual review"
+    try:
         analysis = _classify(cutout)
+        source = "Online (Gemini)"
+    except WorkerError as exc:
+        # Gemini unavailable/failed is not a segmentation failure. The cutout is
+        # still valid, so the user can review and edit metadata manually.
+        logger.info("Segmentation succeeded; classification skipped (%s)", exc.code)
+    except Exception:  # noqa: BLE001 - never fail segmentation on classification
+        logger.exception("Classification raised unexpectedly; returning cutout only")
 
     buffer = io.BytesIO()
     cutout.save(buffer, format="PNG")
@@ -227,7 +238,7 @@ def analyze(image: Image.Image, threshold: float) -> dict[str, Any]:
         "label": label,
         "confidence": round(confidence, 4),
         "analysis": analysis,
-        "classification_source": "Online (Gemini)",
+        "classification_source": source,
     }
 
 

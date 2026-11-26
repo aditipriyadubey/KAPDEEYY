@@ -3,21 +3,22 @@
 @tailwind utilities;
 
 @layer base {
+  :root {
+    color-scheme: light;
+  }
   html {
     -webkit-font-smoothing: antialiased;
     scroll-behavior: smooth;
-    font-family: Calibri, "Times New Roman", Candara, sans-serif !important;
   }
   body {
-    background-color: #FFF7F9;
-    color: #1F1D1E;
-    font-family: Calibri, "Times New Roman", Candara, sans-serif !important;
+    @apply bg-canvas font-sans text-ink;
   }
-  h1, h2, h3, h4, h5, h6, button, input, select, textarea, p, span, a, label {
-    font-family: Calibri, "Times New Roman", Candara, sans-serif !important;
+  ::selection {
+    background-color: #8e1f45;
+    color: #ffffff;
   }
   :focus-visible {
-    outline: 2px solid #FF5C77;
+    outline: 2px solid #8e1f45;
     outline-offset: 2px;
   }
   * {
@@ -25,119 +26,60 @@
   }
 }
 
-/* ─── Keep Splash Screen Styles 100% Intact as requested ─── */
-.bg-kapdeeyy-pattern {
-  background-color: #FFB3C1;
-  background-image: url("data:image/svg+xml,%3Csvg width='200' height='200' viewBox='0 0 200 200' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cg transform='translate(10, 15) rotate(-5)'%3E%3Cpath d='M45 22 C45 14 55 14 55 22 C55 27 50 30 50 35' stroke='%23F27289' stroke-width='3' stroke-linecap='round' fill='none'/%3E%3Cpath d='M10 65 L50 35 L90 65' stroke='%23F27289' stroke-width='4' stroke-linecap='round' stroke-linejoin='round' fill='none'/%3E%3Cpath d='M10 65 Q50 63 90 65' stroke='%23F27289' stroke-width='4' stroke-linecap='round' fill='none'/%3E%3Ccircle cx='44' cy='52' r='2' fill='%236B2B38'/%3E%3Ccircle cx='56' cy='52' r='2' fill='%236B2B38'/%3E%3Cpath d='M48 55 Q50 58 52 55' stroke='%236B2B38' stroke-width='1.5' stroke-linecap='round' fill='none'/%3E%3Ccircle cx='40' cy='54' r='2.5' fill='%23FF5E80' fill-opacity='0.6'/%3E%3Ccircle cx='60' cy='54' r='2.5' fill='%23FF5E80' fill-opacity='0.6'/%3E%3C/g%3E%3Cg transform='translate(110, 105) rotate(8)'%3E%3Cpath d='M45 22 C45 14 55 14 55 22 C55 27 50 30 50 35' stroke='%23F27289' stroke-width='3' stroke-linecap='round' fill='none'/%3E%3Cpath d='M10 65 L50 35 L90 65' stroke='%23F27289' stroke-width='4' stroke-linecap='round' stroke-linejoin='round' fill='none'/%3E%3Cpath d='M10 65 Q50 63 90 65' stroke='%23F27289' stroke-width='4' stroke-linecap='round' fill='none'/%3E%3Cpath d='M42 53 Q45 50 47 53' stroke='%236B2B38' stroke-width='2' stroke-linecap='round' fill='none'/%3E%3Ccircle cx='56' cy='52' r='2' fill='%236B2B38'/%3E%3Cpath d='M48 55 Q50 58 52 55' stroke='%236B2B38' stroke-width='1.5' stroke-linecap='round' fill='none'/%3E%3Ccircle cx='40' cy='54' r='2.5' fill='%23FF5E80' fill-opacity='0.6'/%3E%3Ccircle cx='60' cy='54' r='2.5' fill='%23FF5E80' fill-opacity='0.6'/%3E%3C/g%3E%3Cg transform='translate(125, 25)' fill='%23FCA5B7' stroke='%23F27289' stroke-width='1.5'%3E%3Cpath d='M15 15 C8 10 3 14 7 19 C3 24 8 28 15 23 C22 28 27 24 23 19 C27 14 22 10 15 15 Z'/%3E%3Ccircle cx='15' cy='19' r='2.5' fill='%23F27289'/%3E%3C/g%3E%3Cg transform='translate(35, 125)' fill='%23FCA5B7' stroke='%23F27289' stroke-width='1.5'%3E%3Cpath d='M15 15 C8 10 3 14 7 19 C3 24 8 28 15 23 C22 28 27 24 23 19 C27 14 22 10 15 15 Z'/%3E%3Ccircle cx='15' cy='19' r='2.5' fill='%23F27289'/%3E%3C/g%3E%3Cpath d='M25 90 C25 87 22 84 19 86 C16 84 13 87 13 90 C13 94 19 98 19 98 C19 98 25 94 25 90 Z' fill='%23F27289' fill-opacity='0.7'/%3E%3Cpath d='M165 80 C165 77 162 74 159 76 C156 74 153 77 153 80 C153 84 159 88 159 88 C159 88 165 84 165 80 Z' fill='%23F27289' fill-opacity='0.7'/%3E%3Cpath d='M95 160 C95 157 92 154 89 156 C86 154 83 157 83 160 C83 164 89 168 89 168 C89 168 95 164 95 160 Z' fill='%23F27289' fill-opacity='0.7'/%3E%3Cg fill='%23FFFFFF'%3E%3Cpath d='M90 25 Q90 32 97 32 Q90 32 90 39 Q90 32 83 32 Q90 32 90 25 Z'/%3E%3Cpath d='M30 170 Q30 176 36 176 Q30 176 30 182 Q30 176 24 176 Q30 176 30 170 Z'/%3E%3Cpath d='M175 145 Q175 151 181 151 Q175 151 175 157 Q175 151 169 151 Q175 151 175 145 Z'/%3E%3Ccircle cx='105' cy='75' r='1.5' fill='%23FFFFFF' fill-opacity='0.8'/%3E%3Ccircle cx='20' cy='35' r='1.5' fill='%23FFFFFF' fill-opacity='0.8'/%3E%3Ccircle cx='180' cy='25' r='1.5' fill='%23FFFFFF' fill-opacity='0.8'/%3E%3Ccircle cx='140' cy='185' r='1.5' fill='%23FFFFFF' fill-opacity='0.8'/%3E%3C/g%3E%3C/svg%3E");
-  background-size: 200px 200px;
+@layer components {
+  .card {
+    @apply rounded-xl border border-line bg-surface;
+  }
+  .card-hover {
+    @apply transition-colors hover:border-ink/30;
+  }
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2 rounded-lg bg-accent px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-60;
+  }
+  .btn-secondary {
+    @apply inline-flex items-center justify-center gap-2 rounded-lg border border-line bg-surface px-5 py-2.5 text-sm font-semibold text-ink transition-colors hover:border-ink/30 disabled:cursor-not-allowed disabled:opacity-60;
+  }
+  .btn-ghost {
+    @apply inline-flex items-center justify-center gap-1.5 rounded-lg border border-line bg-surface px-3 py-2 text-sm font-medium text-ink-soft transition-colors hover:border-ink/30 hover:text-ink disabled:opacity-50;
+  }
+  .field {
+    @apply w-full rounded-lg border border-line bg-surface px-3.5 py-2.5 text-sm text-ink placeholder:text-ink-faint focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent/25;
+  }
+  .chip {
+    @apply inline-flex items-center justify-center rounded-md border border-line bg-surface px-3 py-1.5 text-xs font-medium text-ink-soft transition-colors hover:border-ink/30 hover:text-ink;
+  }
+  .chip-active {
+    @apply border-ink bg-ink text-white hover:bg-ink hover:text-white;
+  }
+  .tag {
+    @apply inline-flex items-center rounded bg-canvas px-2 py-0.5 text-[11px] font-medium text-ink-soft;
+  }
+  .eyebrow {
+    @apply text-[11px] font-semibold uppercase tracking-[0.18em] text-ink-faint;
+  }
+  .skeleton {
+    @apply animate-pulse bg-line/70;
+  }
 }
 
-.bubble-title {
-  font-family: Calibri, "Arial Rounded MT Bold", sans-serif !important;
-  font-weight: 900;
-  color: #58C9F3;
-  -webkit-text-stroke: 4px #FFFFFF;
-  paint-order: stroke fill;
-  filter: drop-shadow(0 6px 0 #33A8D4) drop-shadow(0 10px 14px rgba(51, 168, 212, 0.45));
-  letter-spacing: 0.04em;
+@keyframes slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.animate-slide-up {
+  animation: slide-up 0.18s ease-out;
 }
 
-.btn-signup-pill {
-  background: #54C7EC;
-  color: #FFFFFF;
-  border-radius: 9999px;
-  box-shadow: 0 4px 14px rgba(84, 199, 236, 0.4);
-  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
 }
-.btn-signup-pill:hover {
-  background: #3ebce4;
-  transform: translateY(-1px);
-  box-shadow: 0 6px 18px rgba(84, 199, 236, 0.5);
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }
-.btn-signup-pill:active { transform: scale(0.98); }
-
-.btn-login-pill {
-  background: rgba(235, 248, 252, 0.92);
-  color: #45B9DD;
-  border-radius: 9999px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
-  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-}
-.btn-login-pill:hover {
-  background: #ffffff;
-  color: #2eaad2;
-  transform: translateY(-1px);
-}
-.btn-login-pill:active { transform: scale(0.98); }
-
-/* ─── Playful Candy Colorful Theme ─── */
-.btn-coral-save {
-  background: linear-gradient(135deg, #FF6B81 0%, #FF526E 100%);
-  color: #FFFFFF;
-  border-radius: 9999px;
-  font-weight: 700;
-  transition: all 0.2s ease;
-  box-shadow: 0 6px 20px rgba(255, 82, 110, 0.35);
-}
-.btn-coral-save:hover {
-  background: linear-gradient(135deg, #FF526E 0%, #E63956 100%);
-  box-shadow: 0 8px 24px rgba(255, 82, 110, 0.45);
-  transform: translateY(-1px);
-}
-.btn-coral-save:active { transform: scale(0.98); }
-
-/* Playful aesthetic card */
-.playful-card {
-  border-radius: 28px;
-  background-color: #FFFFFF;
-  border: 1.5px solid #F8E7ED;
-  box-shadow: 0 8px 30px rgba(255, 107, 129, 0.06);
-  transition: all 0.2s ease;
-}
-.playful-card:hover {
-  box-shadow: 0 12px 36px rgba(255, 107, 129, 0.12);
-  border-color: #F8D7E3;
-}
-
-/* Candy Pill Tags */
-.pill-mint {
-  background-color: #C8F2D5;
-  color: #16532B;
-  font-weight: 700;
-  border-radius: 9999px;
-}
-.pill-coral {
-  background-color: #FF5C77;
-  color: #FFFFFF;
-  font-weight: 700;
-  border-radius: 9999px;
-  box-shadow: 0 4px 12px rgba(255, 92, 119, 0.35);
-}
-.pill-butter {
-  background-color: #FDE68A;
-  color: #785A04;
-  font-weight: 700;
-  border-radius: 9999px;
-}
-.pill-sky {
-  background-color: #BAE6FD;
-  color: #0E648B;
-  font-weight: 700;
-  border-radius: 9999px;
-}
-.pill-lilac {
-  background-color: #E9D5FF;
-  color: #6323A0;
-  font-weight: 700;
-  border-radius: 9999px;
-}
-.pill-blush {
-  background-color: #FBCFE8;
-  color: #9D175A;
-  font-weight: 700;
-  border-radius: 9999px;
-}
-
-/* Hide scrollbars */
-.no-scrollbar::-webkit-scrollbar { display: none; }
-.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }

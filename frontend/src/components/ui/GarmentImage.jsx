@@ -1,6 +1,3 @@
-
-import { tintFor } from "../../utils/format";
-
 const SHAPES = {
   tee: "M30 18 L42 14 Q50 22 58 14 L70 18 L88 34 L78 46 L70 40 L70 86 L30 86 L30 40 L22 46 L12 34 Z",
   long: "M32 16 L44 12 L50 20 L56 12 L68 16 L92 70 L80 76 L70 50 L70 88 L30 88 L30 50 L20 76 L8 70 Z",
@@ -20,13 +17,20 @@ function shapeFor(category, subcategory = "") {
   if (/shirt|blouse|cami|knit|sweater/.test(sub) && !/tee|t-shirt/.test(sub)) return "long";
 
   switch (category) {
-    case "Tops": return "tee";
-    case "Bottoms": return "pants";
-    case "Dresses": return "dress";
-    case "Outerwear": return "long";
-    case "Shoes": return "shoe";
-    case "Bags": return "bag";
-    default: return "other";
+    case "Tops":
+      return "tee";
+    case "Bottoms":
+      return "pants";
+    case "Dresses":
+      return "dress";
+    case "Outerwear":
+      return "long";
+    case "Shoes":
+      return "shoe";
+    case "Bags":
+      return "bag";
+    default:
+      return "other";
   }
 }
 
@@ -34,27 +38,26 @@ export default function GarmentImage({
   item,
   showLabel = false,
   className = "",
-  rounded = "rounded-2xl",
+  rounded = "rounded-lg",
 }) {
-  const tint = tintFor(item.id);
   const shape = shapeFor(item.category, item.subcategory);
 
   return (
     <div
       title={item.item_name || "Clothing item"}
-      className={`relative flex items-center justify-center overflow-hidden ${tint} ${rounded} ${className} transition-all duration-200`}
+      className={`relative flex items-center justify-center overflow-hidden bg-canvas ${rounded} ${className}`}
     >
       {item.image_url ? (
         <img
           src={item.image_url}
           alt={item.item_name || "Clothing item"}
-          className="h-full w-full object-contain p-2.5"
+          className="h-full w-full object-contain p-2"
           loading="lazy"
         />
       ) : (
         <svg
           viewBox="0 0 100 100"
-          className="h-[65%] w-[65%] drop-shadow-sm"
+          className="h-[58%] w-[58%]"
           role="img"
           aria-label={item.item_name || "Clothing item"}
         >
@@ -62,14 +65,14 @@ export default function GarmentImage({
             <path
               d="M34 42 Q34 18 50 18 Q66 18 66 42"
               fill="none"
-              stroke="rgba(48,45,42,0.3)"
+              stroke="rgba(23,22,26,0.25)"
               strokeWidth="3"
             />
           )}
           <path
             d={SHAPES[shape]}
-            fill={item.colour_hex || "#CFC8BF"}
-            stroke="rgba(48,45,42,0.22)"
+            fill={item.colour_hex || "#D8D3CB"}
+            stroke="rgba(23,22,26,0.22)"
             strokeWidth="1.5"
             strokeLinejoin="round"
           />
@@ -77,7 +80,7 @@ export default function GarmentImage({
       )}
 
       {showLabel && (
-        <span className="absolute inset-x-0 bottom-0 bg-white/85 backdrop-blur-2xs px-1.5 py-0.5 text-[10px] font-bold text-center leading-tight text-ink truncate">
+        <span className="absolute inset-x-0 bottom-0 truncate border-t border-line bg-surface px-1.5 py-0.5 text-center text-[10px] font-medium leading-tight text-ink">
           {item.item_name}
         </span>
       )}

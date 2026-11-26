@@ -31,13 +31,9 @@ export function isSameDay(a, b) {
   return x.getFullYear() === y.getFullYear() && x.getMonth() === y.getMonth() && x.getDate() === y.getDate();
 }
 
-/** Deterministic pastel tint class for an id so cards keep a stable background. */
-const TINTS = ["bg-mint/40", "bg-coral-tint", "bg-pastel-lavender", "bg-pastel-pink", "bg-pastel-blue", "bg-pastel-yellow"];
-export function tintFor(id) {
-  const s = String(id);
-  let h = 0;
-  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0;
-  return TINTS[h % TINTS.length];
+/** Neutral tile class used behind garment cut-outs. */
+export function tintFor() {
+  return "bg-canvas";
 }
 
 export function plural(n, word) {

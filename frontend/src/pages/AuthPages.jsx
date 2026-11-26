@@ -1,13 +1,41 @@
 import { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { ArrowLeft, CheckCircle2, Loader2, Sparkles } from "lucide-react";
+import { ArrowLeft, Loader2 } from "lucide-react";
 import { friendlyAuthError, useAuth } from "../context/AuthContext";
 
-function BlueSparkle({ className }) {
+const POINTS = [
+  {
+    title: "A wardrobe you can see",
+    body: "Upload your pieces once and keep every detail in one place.",
+  },
+  {
+    title: "Outfits for the occasion",
+    body: "Real combinations built from the clothes you already own.",
+  },
+  {
+    title: "A record of what you wear",
+    body: "See your favourites and the pieces that never leave the closet.",
+  },
+];
+
+function BrandMark({ inverted = false }) {
   return (
-    <svg viewBox="0 0 24 24" fill="#58C9F3" className={className}>
-      <path d="M12 1L14.5 8.5L22 11L14.5 13.5L12 21L9.5 13.5L2 11L9.5 8.5L12 1Z" stroke="#FFFFFF" strokeWidth="1.5" strokeLinejoin="round"/>
-    </svg>
+    <Link to="/" className="inline-flex items-center gap-2.5">
+      <span
+        className={`flex h-7 w-7 items-center justify-center rounded text-[12px] font-semibold ${
+          inverted ? "bg-white text-ink" : "bg-ink text-white"
+        }`}
+      >
+        K
+      </span>
+      <span
+        className={`font-display text-base font-normal uppercase tracking-[0.22em] ${
+          inverted ? "text-white" : "text-ink"
+        }`}
+      >
+        Kapdeeyy
+      </span>
+    </Link>
   );
 }
 
@@ -27,7 +55,6 @@ export function AuthDesktopLanding({ initialMode = "splash" }) {
   // "splash" | "login" | "register"
   const [mode, setMode] = useState(initialMode);
 
-  // Form inputs
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -66,291 +93,302 @@ export function AuthDesktopLanding({ initialMode = "splash" }) {
     }
   };
 
+  const enterDemo = async () => {
+    await signIn("demo@closetremix.local", "password");
+    navigate("/");
+  };
+
+  const switchMode = (next) => {
+    setMode(next);
+    setError(null);
+  };
+
   return (
-    <div className="bg-kapdeeyy-pattern min-h-screen flex flex-col justify-between select-none">
-      {/* ─── Top Header (Responsive: zero collision on mobile) ─── */}
-      <header className="w-full max-w-7xl mx-auto px-4 sm:px-6 pt-3 pb-1 sm:py-6 flex items-center justify-between gap-3 z-20">
-        {/* Desktop-only duplicate logo (hidden on mobile to prevent clutter and collision) */}
-        <div className="hidden sm:flex items-center gap-2">
-          <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-white/80 shadow-md text-[#54C7EC]">
-            <Sparkles className="h-5 w-5" />
-          </span>
-          <span className="bubble-title text-2xl sm:text-3xl font-extrabold uppercase">
-            KAPDEEYY
-          </span>
-        </div>
+    <div className="flex min-h-screen flex-col bg-canvas text-ink lg:flex-row">
+      {/* ─── Editorial brand panel (desktop) ─── */}
+      <aside className="hidden bg-ink p-10 lg:flex lg:w-[46%] lg:flex-col lg:justify-between xl:p-14">
+        <BrandMark inverted />
 
-        {demoMode && (
-          <button
-            type="button"
-            onClick={async () => {
-              await signIn("demo@closetremix.local", "password");
-              navigate("/");
-            }}
-            className="ml-auto rounded-full bg-white/95 backdrop-blur-md px-4 py-2 sm:px-5 sm:py-2.5 text-[11px] sm:text-xs font-bold text-[#F46A6A] shadow-md hover:bg-white active:scale-95 transition-all whitespace-nowrap border border-white/60"
-          >
-            Enter Demo Wardrobe →
-          </button>
-        )}
-      </header>
-
-      {/* ─── Hero Section ─── */}
-      <main className="w-full max-w-7xl mx-auto px-4 sm:px-6 py-4 sm:py-8 my-auto flex-1 flex flex-col lg:flex-row items-center justify-between gap-8 sm:gap-12 z-10">
-        
-        {/* Left Side: Brand Showcase */}
-        <div className="flex-1 flex flex-col items-center lg:items-start text-center lg:text-left">
-          
-          <div className="relative inline-flex items-center">
-            <BlueSparkle className="absolute -left-10 -top-4 w-10 h-10 drop-shadow-sm animate-pulse hidden sm:block" />
-            <h1 className="bubble-title text-5xl sm:text-7xl lg:text-8xl font-black tracking-wide uppercase select-none">
-              KAPDEEYY
-            </h1>
-            <BlueSparkle className="absolute -right-10 -bottom-2 w-10 h-10 drop-shadow-sm animate-pulse [animation-delay:1s] hidden sm:block" />
-          </div>
-
-          <p className="mt-6 text-white text-2xl sm:text-3xl lg:text-4xl font-extrabold tracking-tight drop-shadow-[0_2px_6px_rgba(0,0,0,0.2)] max-w-xl leading-snug">
-            Your 'Aaj Kya Pehnu?'<br />
-            Question Solved!
+        <div className="max-w-md py-10">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-white/50">
+            Personal styling
+          </p>
+          <h2 className="mt-4 font-display text-4xl font-normal leading-[1.15] tracking-tight text-white xl:text-5xl">
+            Your wardrobe,
+            <br />
+            styled.
+          </h2>
+          <p className="mt-4 text-sm leading-relaxed text-white/65">
+            Kapdeeyy turns the clothes you own into outfits you will actually
+            wear — for class, work, dinner or wherever the day goes.
           </p>
 
-          <p className="mt-4 text-white/90 text-base sm:text-lg font-semibold max-w-md drop-shadow-xs">
-            Build your digital wardrobe, discover fresh outfit combinations every morning, and never worry about what to wear again.
-          </p>
-
-          {/* Feature Highlights Pills */}
-          <div className="mt-8 flex flex-wrap justify-center lg:justify-start gap-3">
-            <div className="flex items-center gap-2 rounded-full bg-white/80 backdrop-blur-md px-4 py-2 text-xs font-bold text-ink shadow-sm">
-              <CheckCircle2 className="h-4 w-4 text-[#54C7EC]" />
-              <span>Smart Outfit Generator</span>
-            </div>
-            <div className="flex items-center gap-2 rounded-full bg-white/80 backdrop-blur-md px-4 py-2 text-xs font-bold text-ink shadow-sm">
-              <CheckCircle2 className="h-4 w-4 text-[#F46A6A]" />
-              <span>Digital Wardrobe Tracker</span>
-            </div>
-            <div className="flex items-center gap-2 rounded-full bg-white/80 backdrop-blur-md px-4 py-2 text-xs font-bold text-ink shadow-sm">
-              <CheckCircle2 className="h-4 w-4 text-[#54C7EC]" />
-              <span>Occasion & Weather Styling</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Right Side: Website Card (matching Reference Image 1 UI) */}
-        <div className="w-full max-w-md shrink-0">
-          
-          {/* 1. Splash Action Mode */}
-          {mode === "splash" && (
-            <div className="rounded-[36px] bg-white/85 backdrop-blur-xl p-8 sm:p-10 shadow-2xl border border-white/60 space-y-5">
-              <div className="text-center space-y-2">
-                <span className="inline-block rounded-full bg-[#D7F0DC] text-[#215E39] px-3 py-1 text-xs font-extrabold uppercase tracking-wider">
-                  Get Started
+          <ol className="mt-10 space-y-6 border-t border-white/15 pt-8">
+            {POINTS.map((point, index) => (
+              <li key={point.title} className="flex gap-4">
+                <span className="mt-0.5 font-display text-sm text-white/40">
+                  0{index + 1}
                 </span>
-                <h2 className="font-display text-2xl font-black text-ink">
-                  Join Your Closet Remix
-                </h2>
-                <p className="text-sm font-semibold text-black/50">
-                  Choose an option below to continue
-                </p>
+                <div>
+                  <p className="text-sm font-semibold text-white">{point.title}</p>
+                  <p className="mt-1 text-xs leading-relaxed text-white/55">
+                    {point.body}
+                  </p>
+                </div>
+              </li>
+            ))}
+          </ol>
+        </div>
+
+        <p className="text-[11px] text-white/40">
+          © 2026 Kapdeeyy. All rights reserved.
+        </p>
+      </aside>
+
+      {/* ─── Form panel ─── */}
+      <main className="flex flex-1 flex-col">
+        <div className="flex items-center justify-between px-5 py-5 sm:px-8 lg:hidden">
+          <BrandMark />
+          {mode !== "splash" && (
+            <button
+              type="button"
+              onClick={() => switchMode("splash")}
+              className="text-xs font-medium text-ink-soft hover:text-ink"
+            >
+              Back
+            </button>
+          )}
+        </div>
+
+        <div className="flex flex-1 items-center justify-center px-5 pb-12 sm:px-8">
+          <div className="w-full max-w-sm">
+            {demoMode && (
+              <div className="mb-4 flex justify-end">
+                <button
+                  type="button"
+                  onClick={enterDemo}
+                  className="text-[11px] font-medium text-accent hover:underline"
+                >
+                  Enter demo wardrobe
+                </button>
               </div>
+            )}
 
-              {/* Sky-Blue "Sign Up" Pill Button */}
-              <button
-                type="button"
-                onClick={() => { setMode("register"); setError(null); }}
-                className="btn-signup-pill w-full py-4 text-center font-display text-lg font-bold tracking-wide block"
-              >
-                Sign Up
-              </button>
+            {/* 1. Splash mode */}
+            {mode === "splash" && (
+              <div className="space-y-6">
+                <div>
+                  <p className="eyebrow">Account</p>
+                  <h1 className="mt-2 font-display text-3xl font-normal tracking-tight text-ink">
+                    Welcome to Kapdeeyy
+                  </h1>
+                  <p className="mt-2 text-sm leading-relaxed text-ink-soft">
+                    Sign in to your wardrobe, or create an account to start
+                    building one.
+                  </p>
+                </div>
 
-              {/* Light Frosted "Log In" Pill Button */}
-              <button
-                type="button"
-                onClick={() => { setMode("login"); setError(null); }}
-                className="btn-login-pill w-full py-4 text-center font-display text-lg font-bold tracking-wide block border border-gray-100"
-              >
-                Log In
-              </button>
-
-              {demoMode && (
-                <div className="text-center pt-2 border-t border-gray-100">
+                <div className="space-y-2.5">
                   <button
                     type="button"
-                    onClick={async () => {
-                      await signIn("demo@closetremix.local", "password");
-                      navigate("/");
-                    }}
-                    className="text-xs font-bold text-[#F46A6A] hover:underline"
+                    onClick={() => switchMode("register")}
+                    className="btn-primary w-full"
                   >
-                    Quickly Explore with Demo Account →
+                    Create account
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => switchMode("login")}
+                    className="btn-secondary w-full"
+                  >
+                    Sign in
                   </button>
                 </div>
-              )}
-            </div>
-          )}
 
-          {/* 2. Login Form Mode */}
-          {mode === "login" && (
-            <div className="rounded-[36px] bg-white/95 backdrop-blur-xl p-8 sm:p-10 shadow-2xl border border-white space-y-5">
-              <div className="flex items-center justify-between">
-                <button
-                  type="button"
-                  onClick={() => { setMode("splash"); setError(null); }}
-                  className="flex h-9 w-9 items-center justify-center rounded-full bg-gray-100 text-black/60 hover:bg-gray-200"
-                >
-                  <ArrowLeft className="h-5 w-5" />
-                </button>
-                <span className="font-display font-black text-xl text-[#54C7EC]">KAPDEEYY</span>
+                <ul className="space-y-3 border-t border-line pt-6">
+                  {POINTS.map((point) => (
+                    <li key={point.title} className="text-xs leading-relaxed text-ink-soft">
+                      <span className="font-semibold text-ink">{point.title}.</span>{" "}
+                      {point.body}
+                    </li>
+                  ))}
+                </ul>
               </div>
+            )}
 
-              <div>
-                <h2 className="font-display text-2xl font-bold text-ink">Welcome back ✨</h2>
-                <p className="text-xs font-semibold text-black/45 mt-1">Sign in to access your wardrobe.</p>
-              </div>
-
-              <form onSubmit={handleLogin} className="space-y-4">
-                <div>
-                  <label className="block text-xs font-bold text-black/60 mb-1">Email</label>
-                  <input
-                    type="email"
-                    required
-                    placeholder="you@example.com"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className="w-full rounded-2xl border border-gray-200 bg-gray-50/70 px-4 py-3 text-sm focus:border-[#54C7EC] focus:bg-white focus:outline-none"
-                  />
+            {/* 2. Login mode */}
+            {mode === "login" && (
+              <div className="space-y-6">
+                <div className="flex items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={() => switchMode("splash")}
+                    className="flex h-8 w-8 items-center justify-center rounded-lg border border-line text-ink-soft transition-colors hover:text-ink"
+                    aria-label="Back"
+                  >
+                    <ArrowLeft className="h-4 w-4" />
+                  </button>
+                  <div>
+                    <p className="eyebrow">Sign in</p>
+                    <h1 className="font-display text-2xl font-normal tracking-tight text-ink">
+                      Welcome back
+                    </h1>
+                  </div>
                 </div>
 
-                <div>
-                  <label className="block text-xs font-bold text-black/60 mb-1">Password</label>
-                  <input
-                    type="password"
-                    required
-                    placeholder="••••••••"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className="w-full rounded-2xl border border-gray-200 bg-gray-50/70 px-4 py-3 text-sm focus:border-[#54C7EC] focus:bg-white focus:outline-none"
-                  />
+                <form onSubmit={handleLogin} className="space-y-4">
+                  <div>
+                    <label htmlFor="login-email" className="mb-1.5 block text-xs font-medium text-ink-soft">
+                      Email
+                    </label>
+                    <input
+                      id="login-email"
+                      type="email"
+                      required
+                      autoComplete="email"
+                      placeholder="you@example.com"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      className="field"
+                    />
+                  </div>
+
+                  <div>
+                    <label htmlFor="login-password" className="mb-1.5 block text-xs font-medium text-ink-soft">
+                      Password
+                    </label>
+                    <input
+                      id="login-password"
+                      type="password"
+                      required
+                      autoComplete="current-password"
+                      placeholder="••••••••"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      className="field"
+                    />
+                  </div>
+
+                  {error && (
+                    <p className="rounded-lg border border-danger/20 bg-danger-tint p-3 text-xs font-medium text-danger">
+                      {error}
+                    </p>
+                  )}
+
+                  <button type="submit" disabled={busy} className="btn-primary w-full">
+                    {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : "Sign in"}
+                  </button>
+                </form>
+
+                <div className="flex items-center justify-between border-t border-line pt-4 text-xs">
+                  <span className="text-ink-soft">New to Kapdeeyy?</span>
+                  <button
+                    type="button"
+                    onClick={() => switchMode("register")}
+                    className="font-medium text-accent hover:underline"
+                  >
+                    Create an account
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* 3. Register mode */}
+            {mode === "register" && (
+              <div className="space-y-6">
+                <div className="flex items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={() => switchMode("splash")}
+                    className="flex h-8 w-8 items-center justify-center rounded-lg border border-line text-ink-soft transition-colors hover:text-ink"
+                    aria-label="Back"
+                  >
+                    <ArrowLeft className="h-4 w-4" />
+                  </button>
+                  <div>
+                    <p className="eyebrow">Create account</p>
+                    <h1 className="font-display text-2xl font-normal tracking-tight text-ink">
+                      Start your wardrobe
+                    </h1>
+                  </div>
                 </div>
 
-                {error && (
-                  <p className="rounded-xl bg-coral-tint p-3 text-xs font-bold text-coral-deep">
-                    {error}
-                  </p>
-                )}
+                <form onSubmit={handleRegister} className="space-y-4">
+                  <div>
+                    <label htmlFor="register-name" className="mb-1.5 block text-xs font-medium text-ink-soft">
+                      Full name
+                    </label>
+                    <input
+                      id="register-name"
+                      type="text"
+                      required
+                      autoComplete="name"
+                      placeholder="Your name"
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      className="field"
+                    />
+                  </div>
 
-                <button
-                  type="submit"
-                  disabled={busy}
-                  className="btn-signup-pill w-full py-4 text-center font-display text-base font-bold shadow-md mt-2"
-                >
-                  {busy ? <Loader2 className="h-4 w-4 animate-spin mx-auto" /> : "Log In"}
-                </button>
-              </form>
+                  <div>
+                    <label htmlFor="register-email" className="mb-1.5 block text-xs font-medium text-ink-soft">
+                      Email
+                    </label>
+                    <input
+                      id="register-email"
+                      type="email"
+                      required
+                      autoComplete="email"
+                      placeholder="you@example.com"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      className="field"
+                    />
+                  </div>
 
-              <div className="text-center text-xs font-semibold text-black/50">
-                New to Kapdeeyy?{" "}
-                <button
-                  type="button"
-                  onClick={() => { setMode("register"); setError(null); }}
-                  className="font-bold text-[#54C7EC] underline underline-offset-2"
-                >
-                  Create an account
-                </button>
-              </div>
-            </div>
-          )}
+                  <div>
+                    <label htmlFor="register-password" className="mb-1.5 block text-xs font-medium text-ink-soft">
+                      Password
+                    </label>
+                    <input
+                      id="register-password"
+                      type="password"
+                      required
+                      minLength={6}
+                      autoComplete="new-password"
+                      placeholder="At least 6 characters"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      className="field"
+                    />
+                  </div>
 
-          {/* 3. Register Form Mode */}
-          {mode === "register" && (
-            <div className="rounded-[36px] bg-white/95 backdrop-blur-xl p-8 sm:p-10 shadow-2xl border border-white space-y-4">
-              <div className="flex items-center justify-between">
-                <button
-                  type="button"
-                  onClick={() => { setMode("splash"); setError(null); }}
-                  className="flex h-9 w-9 items-center justify-center rounded-full bg-gray-100 text-black/60 hover:bg-gray-200"
-                >
-                  <ArrowLeft className="h-5 w-5" />
-                </button>
-                <span className="font-display font-black text-xl text-[#54C7EC]">KAPDEEYY</span>
-              </div>
+                  {error && (
+                    <p className="rounded-lg border border-danger/20 bg-danger-tint p-3 text-xs font-medium text-danger">
+                      {error}
+                    </p>
+                  )}
 
-              <div>
-                <h2 className="font-display text-2xl font-bold text-ink">Create Account 👗</h2>
-                <p className="text-xs font-semibold text-black/45 mt-1">Start building your smart wardrobe.</p>
-              </div>
+                  <button type="submit" disabled={busy} className="btn-primary w-full">
+                    {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : "Create account"}
+                  </button>
+                </form>
 
-              <form onSubmit={handleRegister} className="space-y-3.5">
-                <div>
-                  <label className="block text-xs font-bold text-black/60 mb-1">Your Name</label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="e.g. Mary"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    className="w-full rounded-2xl border border-gray-200 bg-gray-50/70 px-4 py-3 text-sm focus:border-[#54C7EC] focus:bg-white focus:outline-none"
-                  />
+                <div className="flex items-center justify-between border-t border-line pt-4 text-xs">
+                  <span className="text-ink-soft">Already registered?</span>
+                  <button
+                    type="button"
+                    onClick={() => switchMode("login")}
+                    className="font-medium text-accent hover:underline"
+                  >
+                    Sign in
+                  </button>
                 </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-black/60 mb-1">Email</label>
-                  <input
-                    type="email"
-                    required
-                    placeholder="you@example.com"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className="w-full rounded-2xl border border-gray-200 bg-gray-50/70 px-4 py-3 text-sm focus:border-[#54C7EC] focus:bg-white focus:outline-none"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-black/60 mb-1">Password (min. 6 characters)</label>
-                  <input
-                    type="password"
-                    required
-                    minLength={6}
-                    placeholder="••••••••"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className="w-full rounded-2xl border border-gray-200 bg-gray-50/70 px-4 py-3 text-sm focus:border-[#54C7EC] focus:bg-white focus:outline-none"
-                  />
-                </div>
-
-                {error && (
-                  <p className="rounded-xl bg-coral-tint p-3 text-xs font-bold text-coral-deep">
-                    {error}
-                  </p>
-                )}
-
-                <button
-                  type="submit"
-                  disabled={busy}
-                  className="btn-signup-pill w-full py-4 text-center font-display text-base font-bold shadow-md mt-2"
-                >
-                  {busy ? <Loader2 className="h-4 w-4 animate-spin mx-auto" /> : "Sign Up"}
-                </button>
-              </form>
-
-              <div className="text-center text-xs font-semibold text-black/50">
-                Already registered?{" "}
-                <button
-                  type="button"
-                  onClick={() => { setMode("login"); setError(null); }}
-                  className="font-bold text-[#54C7EC] underline underline-offset-2"
-                >
-                  Log In
-                </button>
               </div>
-            </div>
-          )}
-
+            )}
+          </div>
         </div>
       </main>
-
-      {/* ─── Desktop Landing Footer ─── */}
-      <footer className="w-full max-w-7xl mx-auto px-6 py-4 text-center text-xs font-bold text-white/80 drop-shadow-xs z-10">
-        © 2026 KAPDEEYY · Closet Remix. All rights reserved.
-      </footer>
     </div>
   );
 }

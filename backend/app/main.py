@@ -4,7 +4,7 @@ import httpx
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api import health, outfits, profile, wardrobe
+from app.api import ai, auth, health, media, outfits, profile, wardrobe
 from app.core.config import get_settings
 
 
@@ -29,9 +29,12 @@ def create_app() -> FastAPI:
         allow_headers=["Authorization", "Content-Type"],
     )
 
+    app.include_router(auth.router, prefix="/api")
     app.include_router(health.router, prefix="/api")
     app.include_router(profile.router, prefix="/api")
     app.include_router(wardrobe.router, prefix="/api")
+    app.include_router(media.router, prefix="/api")
+    app.include_router(ai.router, prefix="/api")
     app.include_router(outfits.router, prefix="/api")
 
     return app

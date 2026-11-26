@@ -71,6 +71,48 @@ def fake_supabase(request: httpx.Request) -> httpx.Response:
     method = request.method
     path = request.url.path
 
+    # ── wardrobe_items (needed to hydrate outfits + increment times_worn) ──
+    if path == "/rest/v1/wardrobe_items":
+        if not uid:
+            return httpx.Response(status_code=STATUS_UNAUTHORIZED, json={})
+
+        params = request.url.params
+
+        if method == "GET":
+            rows = [row for row in ITEMS if row["user_id"] == uid]
+            wanted = _eq(params.get("id"))
+            if wanted and wanted.startswith("in.("):
+                ids = {
+                    value.strip().strip('"')
+                    for value in wanted.removeprefix("in.(").removesuffix(")").split(",")
+                    if value.strip()
+                }
+                rows = [row for row in rows if row["id"] in ids]
+            elif wanted:
+                rows = [row for row in rows if row["id"] == wanted]
+            return httpx.Response(status_code=STATUS_OK,
+                                  json=[dict(row) for row in rows])
+
+        if method == "PATCH":
+            wanted = _eq(params.get("id"))
+            rows = [
+                row for row in ITEMS
+                if row["user_id"] == uid and row["id"] == wanted
+            ]
+            if not rows:
+                return httpx.Response(status_code=STATUS_OK, json=[])
+            values = _json(request)
+            if "user_id" in values and values["user_id"] != uid:
+                return httpx.Response(status_code=STATUS_FORBIDDEN, json={})
+            if not isinstance(values.get("times_worn", 0), int):
+                # PostgREST cannot execute SQL expressions sent as values.
+                return httpx.Response(status_code=400,
+                                      json={"message": "invalid input syntax"})
+            rows[0].update(values)
+            row = dict(rows[0])
+            row["updated_at"] = _now()
+            return httpx.Response(status_code=STATUS_OK, json=[row])
+
     # Essential paths for Phase 5 tests
     if path == "/rest/v1/outfits":
         if method == "GET":
@@ -158,6 +200,18 @@ def fake_supabase(request: httpx.Request) -> httpx.Response:
                                   json=[dict(row)])
 
     if path == "/rest/v1/outfit_wear_history":
+        if method == "GET":
+            # RLS in production; the fake scopes by the caller's token instead and
+            # honours the eq. filters the endpoints rely on.
+            params = request.url.params
+            rows = [h for h in WEAR_HISTORY if h["user_id"] == uid]
+            for field in ("id", "outfit_id", "worn_on"):
+                wanted = _eq(params.get(field))
+                if wanted:
+                    rows = [row for row in rows if str(row.get(field)) == wanted]
+            return httpx.Response(status_code=STATUS_OK,
+                                  json=[dict(row) for row in rows])
+
         if method == "POST":
             from datetime import datetime, timezone
             values = _json(request)
@@ -177,6 +231,8 @@ def fake_supabase(request: httpx.Request) -> httpx.Response:
                 "user_id": uid,
                 "outfit_id": values["outfit_id"],
                 "worn_on": worn_on,
+                "worn_at": _now(),
+                "occasion": None,
             }
             WEAR_HISTORY.append(row)
             item_ids = values.get("item_ids", [])
@@ -219,6 +275,8 @@ def client():
 
     app = create_app()
     app.dependency_overrides[get_settings] = lambda: Settings(
+        database_backend="supabase",
+        auth_backend="supabase",
         supabase_url="https://proj.supabase.co",
         supabase_anon_key="anon",
         _env_file=None,
@@ -343,7 +401,13 @@ class TestWearHistory:
         assert item["times_worn"] == 1, f"Expected times_worn=1, got {item['times_worn']}"
 
     def test_different_day_increments_times_worn(self, client):
-        """Marking an outfit as worn on a different day increments times_worn."""
+        """A wear on a new day increments times_worn again.
+
+        `worn_on` is decided by the backend (server date), not by the request
+        body, so a previous day is seeded directly to represent an earlier wear.
+        """
+        from datetime import date, timedelta
+
         outfit_id = "11111111-1111-4111-8111-111111111111"
         item_id = "aaaabbbb-aaaa-4aaa-8aaa-aaaabbbbccccdd"
         outfit_item_id = "00000000-0000-4000-8000-000000000003"
@@ -355,42 +419,52 @@ class TestWearHistory:
         ITEMS.append({
             "id": item_id, "user_id": ALICE,
             "item_name": "Test Item", "category": "Tops",
-            "created_at": _now(), "updated_at": _now(), "times_worn": 0
+            "created_at": _now(), "updated_at": _now(), "times_worn": 1
+        })
+        yesterday = (date.today() - timedelta(days=1)).isoformat()
+        WEAR_HISTORY.append({
+            "id": "11111111-900",
+            "user_id": ALICE,
+            "outfit_id": outfit_id,
+            "worn_on": yesterday,
+            "worn_at": _now(),
+            "occasion": None,
         })
 
-        r1 = client.post(f"/api/outfits/{outfit_id}/worn", headers=auth(),
-                         json={"worn_on": "2024-01-15", "item_ids": [item_id]})
+        r1 = client.post(f"/api/outfits/{outfit_id}/worn", headers=auth())
         assert r1.status_code == STATUS_OK, r1.text
-
-        r2 = client.post(f"/api/outfits/{outfit_id}/worn", headers=auth(),
-                         json={"worn_on": "2024-01-16", "item_ids": [item_id]})
-        assert r2.status_code == STATUS_OK, r2.text
 
         item = next((i for i in ITEMS if i["id"] == item_id), None)
         assert item is not None
         assert item["times_worn"] == 2, f"Expected times_worn=2, got {item['times_worn']}"
 
     def test_wear_history_shows_all_records(self, client):
-        """Wear history endpoint returns all wear records."""
-        outfit_id = "11111111-1111-4111-8111-111111111111"
-        item_id = "xxxxxxxx-yyyy-4zzzz-dddd-xxxxxxxxxxxx"
-        outfit_item_id = "00000000-0000-4000-8000-000000000004"
-        OUTFIT_ITEMS.append({
-            "id": outfit_item_id,
-            "outfit_id": outfit_id,
-            "wardrobe_item_id": item_id,
-        })
-        ITEMS.append({
-            "id": item_id, "user_id": ALICE,
-            "item_name": "Test Item", "category": "Tops",
-            "created_at": _now(), "updated_at": _now(), "times_worn": 0
-        })
-        client.post(f"/api/outfits/{outfit_id}/worn", headers=auth(),
-                    json={"worn_on": "2024-01-15", "item_ids": [item_id]})
-        client.post(f"/api/outfits/{outfit_id}/worn", headers=auth(),
-                    json={"worn_on": "2024-01-17", "item_ids": [item_id]})
+        """Wear history endpoint returns all wear records for the caller.
 
-        r = client.get(f"/api/outfits/{outfit_id}/history", headers=auth())
+        The supported route is GET /api/outfits/history (there is no per-outfit
+        history route). Duplicate prevention is per outfit and per day, so two
+        different outfits are marked worn to produce two records.
+        """
+        outfit_ids = [
+            "11111111-1111-4111-8111-111111111111",
+            "22222222-2222-4222-8222-222222222222",
+        ]
+        for index, outfit_id in enumerate(outfit_ids):
+            item_id = f"aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa{index}"
+            OUTFIT_ITEMS.append({
+                "id": f"00000000-0000-4000-8000-00000000000{index + 4}",
+                "outfit_id": outfit_id,
+                "wardrobe_item_id": item_id,
+            })
+            ITEMS.append({
+                "id": item_id, "user_id": ALICE,
+                "item_name": f"Test Item {index}", "category": "Tops",
+                "created_at": _now(), "updated_at": _now(), "times_worn": 0
+            })
+            worn = client.post(f"/api/outfits/{outfit_id}/worn", headers=auth())
+            assert worn.status_code == STATUS_OK, worn.text
+
+        r = client.get("/api/outfits/history", headers=auth())
         assert r.status_code == STATUS_OK, r.text
         records = r.json()
-        assert len(records) >= 2
+        assert len(records) >= 2, (len(WEAR_HISTORY), WEAR_HISTORY, records)

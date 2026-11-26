@@ -1,6 +1,7 @@
 import asyncio
 import base64
 import logging
+import sqlite3
 from uuid import UUID, uuid4
 
 import httpx
@@ -9,8 +10,9 @@ from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
 from app.core.auth import AuthUser, get_current_user
 from app.core.config import Settings, get_settings
 from app.core.http import get_http
-from app.database.supabase_rest import UserDB
-from app.database.supabase_storage import (
+from app.database.deps import get_db, get_storage
+from app.database.supabase_rest import UserDB  # type hints only
+from app.database.supabase_storage import (  # type hints + shared constants
     ORIGINAL_BUCKET,
     SEGMENTED_BUCKET,
     UserStorage,
@@ -45,20 +47,14 @@ PRIVACY_NOTICE = (
 )
 
 
-def _db(
-    client: httpx.AsyncClient = Depends(get_http),
-    settings: Settings = Depends(get_settings),
-    user: AuthUser = Depends(get_current_user),
-) -> UserDB:
-    return UserDB(client, settings, user)
+def _db(db=Depends(get_db)):
+    """SQLite in local mode, PostgREST in Supabase mode."""
+    return db
 
 
-def _storage(
-    client: httpx.AsyncClient = Depends(get_http),
-    settings: Settings = Depends(get_settings),
-    user: AuthUser = Depends(get_current_user),
-) -> UserStorage:
-    return UserStorage(client, settings, user)
+def _storage(storage=Depends(get_storage)):
+    """Local disk in local mode, Supabase Storage in Supabase mode."""
+    return storage
 
 
 def _detect_image(data: bytes) -> tuple[str, str] | None:
@@ -242,10 +238,29 @@ async def add_wardrobe_item(
 
     try:
         rows = await db.insert("wardrobe_items", values)
+    except sqlite3.IntegrityError as exc:
+        # A rejected value (bad colour, unknown category, ...) is the caller's
+        # input problem. Surface it instead of letting it become a blank 500.
+        if original_path:
+            await _rollback_upload(storage, original_path)
+        logger.warning("Wardrobe insert rejected: %s", exc)
+        raise HTTPException(
+            status.HTTP_400_BAD_REQUEST,
+            "One of the item details is not valid. Check the name, category and colour.",
+        ) from exc
     except HTTPException:
         if original_path:
             await _rollback_upload(storage, original_path)
         raise
+    except sqlite3.OperationalError as exc:
+        if original_path:
+            await _rollback_upload(storage, original_path)
+        # A locked/busy database is a server condition, not a bad request.
+        logger.exception("Could not save wardrobe item")
+        raise HTTPException(
+            status.HTTP_503_SERVICE_UNAVAILABLE,
+            "The wardrobe database is busy. Please try again in a moment.",
+        ) from exc
 
     if not rows:
         if original_path:
@@ -423,11 +438,18 @@ async def update_wardrobe_item(
             "No changes provided",
         )
 
-    rows = await db.update(
-        "wardrobe_items",
-        {"id": f"eq.{item_id}", "user_id": f"eq.{user.id}"},
-        values,
-    )
+    try:
+        rows = await db.update(
+            "wardrobe_items",
+            {"id": f"eq.{item_id}", "user_id": f"eq.{user.id}"},
+            values,
+        )
+    except sqlite3.IntegrityError as exc:
+        logger.warning("Wardrobe update rejected: %s", exc)
+        raise HTTPException(
+            status.HTTP_400_BAD_REQUEST,
+            "One of the item details is not valid. Check the name, category and colour.",
+        ) from exc
 
     if not rows:
         raise HTTPException(

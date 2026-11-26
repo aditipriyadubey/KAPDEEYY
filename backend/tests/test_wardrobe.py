@@ -178,6 +178,8 @@ def client():
 
     app = create_app()
     app.dependency_overrides[get_settings] = lambda: Settings(
+        database_backend="supabase",
+        auth_backend="supabase",
         supabase_url="https://proj.supabase.co",
         supabase_anon_key="anon",
         _env_file=None,

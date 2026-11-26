@@ -49,7 +49,12 @@ def client():
 
     app = create_app()
     app.dependency_overrides[get_settings] = lambda: Settings(
-        supabase_url="https://proj.supabase.co", supabase_anon_key="anon", _env_file=None)
+        database_backend="supabase",
+        auth_backend="supabase",
+        supabase_url="https://proj.supabase.co",
+        supabase_anon_key="anon",
+        _env_file=None,
+    )
     http = httpx.AsyncClient(transport=httpx.MockTransport(fake_supabase))
     app.dependency_overrides[get_http] = lambda: http
     with TestClient(app) as c:
@@ -115,5 +120,5 @@ def test_user_jwt_forwarded_so_rls_applies(client):
 
 
 def test_unconfigured_server_returns_503(client):
-    client.app.dependency_overrides[get_settings] = lambda: Settings(_env_file=None)
+    client.app.dependency_overrides[get_settings] = lambda: Settings(database_backend="supabase", auth_backend="supabase", _env_file=None)
     assert client.get("/api/profile", headers=auth("token-alice")).status_code == 503

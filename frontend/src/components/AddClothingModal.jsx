@@ -1,167 +1,184 @@
 import { useEffect, useRef, useState } from "react";
-import { ArrowLeft, Camera, ChevronDown, Edit3 } from "lucide-react";
-import {
-  CATEGORIES,
-  PATTERNS,
-  SEASONS,
-  STYLES,
-} from "../utils/constants";
+import { ArrowLeft, Camera, Edit3, ImagePlus, Loader2 } from "lucide-react";
+import { CATEGORIES, PATTERNS, SEASONS, STYLES } from "../utils/constants";
+import { friendlyError } from "../services/http";
 
 const ACCEPT = "image/jpeg,image/png,image/webp";
 const MAX_MB = 10;
 
-const DEFAULT_IMAGE = "https://images.unsplash.com/photo-1591047139829-d91aecb6caea?w=700&auto=format&fit=crop&q=80";
-
 const INITIAL = {
-  item_name: "Beige Teddy Fleece",
+  item_name: "",
   category: "Tops",
-  subcategory: "Jacket",
-  colour: "Beige",
-  colour_hex: "#E8D8C4",
-  pattern: "Solid",
-  style: "Casual",
-  suggested_occasions: ["Casual", "College"],
-  season: "Autumn",
+  subcategory: "",
+  colour: "",
+  colour_hex: "",
+  pattern: "",
+  style: "",
+  suggested_occasions: [],
+  season: "",
 };
 
 export default function AddClothingModal({ open, onClose, onSave }) {
   const fileRef = useRef(null);
 
   const [draft, setDraft] = useState(INITIAL);
-  const [preview, setPreview] = useState(DEFAULT_IMAGE);
+  const [file, setFile] = useState(null);
+  const [preview, setPreview] = useState(null);
   const [busy, setBusy] = useState(false);
+  const [stage, setStage] = useState("");
   const [error, setError] = useState(null);
 
   useEffect(() => {
     if (!open) {
       setDraft(INITIAL);
+      setFile(null);
+      setPreview(null);
+      setBusy(false);
+      setStage("");
       setError(null);
     }
   }, [open]);
 
   if (!open) return null;
 
-  const set = (key, value) =>
-    setDraft((curr) => ({ ...curr, [key]: value }));
+  const set = (key, value) => setDraft((curr) => ({ ...curr, [key]: value }));
 
   const onPick = (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+    const picked = e.target.files?.[0];
+    if (!picked) return;
 
-    if (!ACCEPT.split(",").includes(file.type)) {
+    if (!ACCEPT.split(",").includes(picked.type)) {
       setError("Please choose a JPG, PNG or WebP image.");
       return;
     }
-    if (file.size > MAX_MB * 1024 * 1024) {
+    if (picked.size > MAX_MB * 1024 * 1024) {
       setError(`File is larger than ${MAX_MB}MB.`);
       return;
     }
 
     setError(null);
-    setPreview(URL.createObjectURL(file));
+    setFile(picked);
+    setPreview(URL.createObjectURL(picked));
   };
 
   const submit = async (e) => {
     e.preventDefault();
+    if (!file) {
+      setError("Choose a photo of the garment first.");
+      return;
+    }
+    if (!draft.item_name.trim()) {
+      setError("Give the item a name.");
+      return;
+    }
+
     setBusy(true);
     setError(null);
     try {
-      await onSave({
+      setStage("Uploading photo...");
+      const metadata = {
         ...draft,
-        item_name: draft.item_name.trim() || "New Garment",
-        image_url: preview,
-      });
+        item_name: draft.item_name.trim(),
+        subcategory: draft.subcategory || null,
+        colour: draft.colour || null,
+        colour_hex: draft.colour_hex || null,
+        pattern: draft.pattern || null,
+        style: draft.style || null,
+        season: draft.season || null,
+      };
+      await onSave(metadata, file, setStage);
       onClose();
     } catch (err) {
-      setError(err?.message || "Couldn't save clothing item");
+      setError(friendlyError(err, "Couldn't save this clothing item."));
     } finally {
       setBusy(false);
+      setStage("");
     }
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-0 sm:p-4 bg-black/40 backdrop-blur-xs select-none">
-      {/* Modal Card — responsive sheet on mobile, rounded card on desktop */}
-      <div className="relative w-full max-w-md h-full sm:h-auto sm:max-h-[92vh] bg-white sm:rounded-[36px] overflow-hidden shadow-2xl flex flex-col justify-between">
-        
-        {/* Header: Back Arrow + "Add item" + Edit/Camera */}
-        <div className="p-4 sm:p-5 border-b border-[#F2ECEE] flex items-center justify-between shrink-0">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/40 p-0 sm:p-4">
+      <div className="relative flex h-full w-full max-w-md flex-col justify-between overflow-hidden bg-surface animate-slide-up sm:h-auto sm:max-h-[92vh] sm:rounded-xl sm:border sm:border-line">
+        <div className="flex shrink-0 items-center justify-between border-b border-line p-4">
           <button
             type="button"
             onClick={onClose}
-            className="p-1 -ml-1 text-[#9B4A58] hover:text-[#FF5C77] rounded-full transition-colors"
+            disabled={busy}
+            className="-ml-1 rounded p-1 text-ink-soft transition-colors hover:text-ink disabled:opacity-40"
+            aria-label="Back"
           >
-            <ArrowLeft className="h-5 w-5 stroke-[2.5]" />
+            <ArrowLeft className="h-4 w-4" />
           </button>
-          
-          <h2 className="text-base sm:text-lg font-bold text-[#9B4A58]">
+
+          <h2 className="font-display text-lg font-normal tracking-tight text-ink">
             Add item
           </h2>
 
           <button
             type="button"
             onClick={() => fileRef.current?.click()}
-            className="p-1 -mr-1 text-[#9B4A58] hover:text-[#FF5C77] rounded-full transition-colors"
+            disabled={busy}
+            className="-mr-1 rounded p-1 text-ink-soft transition-colors hover:text-ink disabled:opacity-40"
+            aria-label="Change garment photo"
           >
-            <Edit3 className="h-4.5 w-4.5 stroke-[2.2]" />
+            <Edit3 className="h-4 w-4" />
           </button>
         </div>
 
-        {/* Scrollable Form Body */}
-        <div className="flex-1 overflow-y-auto no-scrollbar p-5 sm:p-7 space-y-6">
-          
-          {/* Main Large Garment Cutout Image on Wooden Hanger */}
-          <div className="flex flex-col items-center justify-center py-1">
-            <input
-              ref={fileRef}
-              type="file"
-              accept={ACCEPT}
-              className="hidden"
-              onChange={onPick}
-            />
+        <div className="no-scrollbar flex-1 space-y-6 overflow-y-auto p-5 sm:p-6">
+          <div>
+            <input ref={fileRef} type="file" accept={ACCEPT} className="hidden" onChange={onPick} />
 
             <div
-              onClick={() => fileRef.current?.click()}
-              className="group cursor-pointer relative h-56 sm:h-64 w-full flex items-center justify-center"
+              onClick={() => !busy && fileRef.current?.click()}
+              className="group relative h-56 w-full cursor-pointer overflow-hidden rounded-xl border border-line bg-canvas sm:h-64"
             >
-              <img
-                src={preview}
-                alt="Clothing garment"
-                className="max-h-full max-w-[85%] object-contain filter drop-shadow-[0_12px_24px_rgba(0,0,0,0.12)] group-hover:scale-105 transition-transform duration-300"
-              />
-              <div className="absolute bottom-1 right-6 rounded-full bg-white/90 backdrop-blur-xs px-2.5 py-1 text-[11px] font-bold text-[#9B4A58] shadow-xs flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                <Camera className="h-3 w-3" /> Change
-              </div>
+              {preview ? (
+                <>
+                  <img
+                    src={preview}
+                    alt="Selected garment"
+                    className="h-full w-full object-contain p-4"
+                  />
+                  <span className="absolute bottom-2 right-2 flex items-center gap-1 rounded border border-line bg-surface px-2 py-1 text-[11px] font-medium text-ink-soft">
+                    <Camera className="h-3 w-3" /> Change
+                  </span>
+                </>
+              ) : (
+                <div className="flex h-full w-full flex-col items-center justify-center gap-2 text-ink-faint">
+                  <ImagePlus className="h-6 w-6" strokeWidth={1.6} />
+                  <p className="text-sm font-medium text-ink-soft">
+                    Choose a clothing photo
+                  </p>
+                  <p className="text-[11px]">JPG, PNG or WebP · up to {MAX_MB}MB</p>
+                </div>
+              )}
             </div>
 
-            {/* Item Name Input */}
             <input
               type="text"
               value={draft.item_name}
               onChange={(e) => set("item_name", e.target.value)}
-              className="text-center text-sm font-bold text-[#9B4A58] mt-2 border-b border-transparent hover:border-gray-200 focus:border-[#FF5C77] focus:outline-none py-0.5 bg-transparent w-full max-w-xs transition-colors"
-              placeholder="Item name..."
+              className="field mt-3"
+              placeholder="Item name"
+              aria-label="Item name"
             />
           </div>
 
-          {/* Section: Season (Reference Image 2 Screen 2) */}
           <div>
-            <h3 className="text-xs sm:text-sm font-bold text-[#9B4A58] mb-2.5">
+            <h3 className="mb-2.5 text-xs font-semibold uppercase tracking-[0.14em] text-ink-faint">
               Season
             </h3>
             <div className="grid grid-cols-4 gap-2">
-              {["Autumn", "Winter", "Spring", "Summer"].map((s) => {
+              {SEASONS.filter((s) => s !== "All-season").map((s) => {
                 const isSelected = draft.season === s;
                 return (
                   <button
                     key={s}
                     type="button"
-                    onClick={() => set("season", s)}
-                    className={`py-2 px-1 text-center rounded-2xl text-xs font-bold transition-all ${
-                      isSelected
-                        ? "bg-[#B6F2C7] text-[#0F4722] shadow-2xs font-extrabold"
-                        : "bg-white text-black/45 border border-gray-200/80 hover:border-gray-300"
-                    }`}
+                    onClick={() => set("season", isSelected ? "" : s)}
+                    aria-pressed={isSelected}
+                    className={`${isSelected ? "chip chip-active" : "chip"} py-2`}
                   >
                     {s}
                   </button>
@@ -170,110 +187,131 @@ export default function AddClothingModal({ open, onClose, onSave }) {
             </div>
           </div>
 
-          {/* Section: Characteristics (Reference Image 2 Screen 2) */}
           <div>
-            <h3 className="text-xs sm:text-sm font-bold text-[#9B4A58] mb-2.5">
-              Characteristics
+            <h3 className="mb-1 text-xs font-semibold uppercase tracking-[0.14em] text-ink-faint">
+              Details
             </h3>
 
-            <div className="space-y-3.5 text-xs font-semibold">
-              {/* Category */}
-              <div className="flex items-center justify-between border-b border-gray-100/90 pb-2">
-                <span className="text-black/45 font-bold">Category</span>
-                <div className="flex items-center gap-1 cursor-pointer">
+            <div className="space-y-0 text-xs">
+              <div className="flex items-center justify-between gap-4 border-b border-line py-2.5">
+                <span className="text-ink-soft">Category</span>
+                <div className="flex items-center gap-1">
                   <select
                     value={draft.category}
                     onChange={(e) => set("category", e.target.value)}
-                    className="bg-transparent text-black/75 font-bold focus:outline-none text-right cursor-pointer"
+                    className="cursor-pointer bg-transparent text-right text-sm font-medium text-ink focus:outline-none"
+                    aria-label="Category"
                   >
                     {CATEGORIES.map((c) => (
-                      <option key={c} value={c}>{c}</option>
+                      <option key={c} value={c}>
+                        {c}
+                      </option>
                     ))}
                   </select>
-                  <ChevronDown className="h-3.5 w-3.5 text-black/40" />
                 </div>
               </div>
 
-              {/* Subcategory */}
-              <div className="flex items-center justify-between border-b border-gray-100/90 pb-2">
-                <span className="text-black/45 font-bold">Subcategory</span>
+              <div className="flex items-center justify-between gap-4 border-b border-line py-2.5">
+                <span className="text-ink-soft">Subcategory</span>
                 <input
                   type="text"
                   value={draft.subcategory || ""}
                   onChange={(e) => set("subcategory", e.target.value)}
                   placeholder="Pants / Jacket"
-                  className="bg-transparent text-black/75 font-bold focus:outline-none text-right placeholder:text-black/30"
+                  className="bg-transparent text-right text-sm font-medium text-ink placeholder:text-ink-faint focus:outline-none"
+                  aria-label="Subcategory"
                 />
               </div>
 
-              {/* Colour */}
-              <div className="flex items-center justify-between border-b border-gray-100/90 pb-2">
-                <span className="text-black/45 font-bold">Colour</span>
+              <div className="flex items-center justify-between gap-4 border-b border-line py-2.5">
+                <span className="text-ink-soft">Colour</span>
                 <div className="flex items-center gap-2">
                   <input
                     type="text"
                     value={draft.colour || ""}
                     onChange={(e) => set("colour", e.target.value)}
-                    className="w-20 bg-transparent text-black/75 font-bold focus:outline-none text-right"
+                    placeholder="Beige"
+                    className="w-20 bg-transparent text-right text-sm font-medium text-ink placeholder:text-ink-faint focus:outline-none"
+                    aria-label="Colour name"
                   />
-                  <input
-                    type="color"
-                    value={draft.colour_hex || "#E8D8C4"}
-                    onChange={(e) => set("colour_hex", e.target.value)}
-                    className="h-4 w-4 rounded-full border-0 cursor-pointer p-0"
-                  />
-                  <ChevronDown className="h-3.5 w-3.5 text-black/40" />
+                  <label
+                    className="relative h-5 w-5 cursor-pointer overflow-hidden rounded-full border border-line"
+                    style={{ backgroundColor: draft.colour_hex || "#E8D8C4" }}
+                    title="Choose colour swatch"
+                  >
+                    <input
+                      type="color"
+                      value={draft.colour_hex || "#E8D8C4"}
+                      onChange={(e) => set("colour_hex", e.target.value)}
+                      className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
+                      aria-label="Colour swatch"
+                    />
+                  </label>
                 </div>
               </div>
 
-              {/* Pattern */}
-              <div className="flex items-center justify-between border-b border-gray-100/90 pb-2">
-                <span className="text-black/45 font-bold">Pattern</span>
-                <div className="flex items-center gap-1 cursor-pointer">
+              <div className="flex items-center justify-between gap-4 border-b border-line py-2.5">
+                <span className="text-ink-soft">Pattern</span>
+                <div className="flex items-center gap-1">
                   <select
                     value={draft.pattern}
                     onChange={(e) => set("pattern", e.target.value)}
-                    className="bg-transparent text-black/75 font-bold focus:outline-none text-right cursor-pointer"
+                    className="cursor-pointer bg-transparent text-right text-sm font-medium text-ink focus:outline-none"
+                    aria-label="Pattern"
                   >
+                    <option value="">—</option>
                     {PATTERNS.map((p) => (
-                      <option key={p} value={p}>{p}</option>
+                      <option key={p} value={p}>
+                        {p}
+                      </option>
                     ))}
                   </select>
-                  <ChevronDown className="h-3.5 w-3.5 text-black/40" />
                 </div>
               </div>
 
-              {/* Style */}
-              <div className="flex items-center justify-between border-b border-gray-100/90 pb-2">
-                <span className="text-black/45 font-bold">Style</span>
-                <div className="flex items-center gap-1 cursor-pointer">
+              <div className="flex items-center justify-between gap-4 py-2.5">
+                <span className="text-ink-soft">Style</span>
+                <div className="flex items-center gap-1">
                   <select
                     value={draft.style}
                     onChange={(e) => set("style", e.target.value)}
-                    className="bg-transparent text-black/75 font-bold focus:outline-none text-right cursor-pointer"
+                    className="cursor-pointer bg-transparent text-right text-sm font-medium text-ink focus:outline-none"
+                    aria-label="Style"
                   >
+                    <option value="">—</option>
                     {STYLES.map((s) => (
-                      <option key={s} value={s}>{s}</option>
+                      <option key={s} value={s}>
+                        {s}
+                      </option>
                     ))}
                   </select>
-                  <ChevronDown className="h-3.5 w-3.5 text-black/40" />
                 </div>
               </div>
             </div>
           </div>
 
-          {error && <p className="text-xs text-[#FF5C77] font-bold text-center">{error}</p>}
+          {error && (
+            <p className="rounded-lg border border-danger/20 bg-danger-tint p-3 text-center text-xs font-medium text-danger">
+              {error}
+            </p>
+          )}
         </div>
 
-        {/* Bottom Prominent Coral "Save" Button */}
-        <div className="p-4 sm:p-5 pt-2 shrink-0 bg-white border-t border-[#F2ECEE]">
+        <div className="shrink-0 border-t border-line bg-surface p-4 sm:p-5">
           <button
             type="button"
             onClick={submit}
             disabled={busy}
-            className="w-full py-3.5 rounded-full bg-[#FF5C77] hover:bg-[#E05252] text-white font-extrabold text-sm sm:text-base shadow-[0_8px_20px_rgba(255,92,119,0.35)] transition-all"
+            className="btn-primary w-full py-3"
           >
-            {busy ? "Saving..." : "Save"}
+            {busy ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                {stage || "Saving..."}
+              </>
+            ) : (
+              "Save"
+            )}
           </button>
         </div>
       </div>

@@ -17,20 +17,35 @@ function Strip({ entries }) {
   }, [entries]);
 
   return (
-    <div className="mb-8 overflow-x-auto no-scrollbar pb-2">
-      <ol className="flex gap-3 min-w-max" aria-label="Last 14 days">
+    <div className="no-scrollbar mb-8 overflow-x-auto pb-2">
+      <ol className="flex min-w-max gap-2" aria-label="Last 14 days">
         {days.map(({ date, entry }) => {
           const today = isSameDay(date, new Date());
           return (
             <li
               key={date.toISOString()}
-              className={`flex flex-col items-center rounded-2xl border p-3 w-20 transition-all duration-200 ${
-                entry ? "border-[#F46A6A]/40 bg-coral-tint" : "border-gray-200 bg-white"
-              } ${today ? "ring-2 ring-[#F46A6A] shadow-sm" : ""}`}
-              title={entry ? `${formatShort(date)} · ${entry.outfit.outfit_name}` : formatShort(date)}
+              className={`flex w-[74px] flex-col items-center rounded-lg border p-2.5 transition-colors ${
+                entry ? "border-accent/25 bg-accent-tint" : "border-line bg-surface"
+              } ${today ? "ring-1 ring-accent/40" : ""}`}
+              title={
+                entry
+                  ? `${formatShort(date)} · ${entry.outfit.outfit_name}`
+                  : formatShort(date)
+              }
             >
-              <span className="text-xs font-bold text-black/50">{formatShort(date)}</span>
-              {entry && <GarmentImage item={entry.outfit.items[0]} className="mt-2 w-full h-14 !bg-transparent" />}
+              <span className="text-[10px] font-medium text-ink-faint">
+                {formatShort(date)}
+              </span>
+              {entry ? (
+                <GarmentImage
+                  item={entry.outfit.items[0]}
+                  className="mt-1.5 h-12 w-full rounded bg-transparent"
+                />
+              ) : (
+                <span className="mt-1.5 flex h-12 w-full items-center justify-center">
+                  <span className="h-px w-4 bg-line" />
+                </span>
+              )}
             </li>
           );
         })}
@@ -47,9 +62,14 @@ export default function History() {
 
   return (
     <div className="space-y-6">
-      <div className="pb-2 border-b border-gray-100">
-        <h1 className="font-display text-3xl font-extrabold text-ink">Wear History 📅</h1>
-        <p className="text-sm font-semibold text-black/45 mt-0.5">Every combination you've worn, remembered automatically.</p>
+      <div className="border-b border-line pb-5">
+        <p className="eyebrow">Record</p>
+        <h1 className="mt-1 font-display text-2xl font-normal tracking-tight text-ink sm:text-3xl">
+          Wear History
+        </h1>
+        <p className="mt-1 text-xs text-ink-soft sm:text-sm">
+          Every combination you have worn, remembered automatically.
+        </p>
       </div>
 
       {loading && <Spinner label="Loading your wear history" />}
@@ -59,50 +79,85 @@ export default function History() {
         <EmptyState
           icon={CalendarDays}
           title="No outfits worn yet"
-          message='When you tap "Mark as worn" on an outfit, it shows up here by date.'
-          action={<Link to="/studio" className="btn-coral-save px-6 py-2.5 text-sm inline-block">Find an outfit</Link>}
+          message='When you mark an outfit as worn, it shows up here by date.'
+          action={
+            <Link to="/studio" className="btn-primary">
+              Find an outfit
+            </Link>
+          }
         />
       )}
 
       {!loading && entries.length > 0 && (
         <>
           {repeated && (
-            <div className="rounded-2xl bg-coral-tint p-5 flex flex-wrap items-center justify-between gap-4">
-              <p className="text-sm font-semibold text-ink">
-                You've worn <strong className="font-black text-[#F46A6A]">{repeated.outfit.outfit_name}</strong> {repeated.repeat_count} times in the
-                last two weeks: {repeated.outfit.items.map((i) => i.item_name).join(", ")}.
+            <div className="card flex flex-wrap items-center justify-between gap-4 border-l-2 border-l-accent p-5">
+              <p className="text-sm leading-relaxed text-ink-soft">
+                You have worn{" "}
+                <strong className="font-semibold text-ink">
+                  {repeated.outfit.outfit_name}
+                </strong>{" "}
+                {repeated.repeat_count} times so far:{" "}
+                {repeated.outfit.items.map((i) => i.item_name).join(", ")}.
               </p>
-              <button type="button" className="btn-coral-save px-5 py-2 text-xs" onClick={() => navigate("/studio")}>Explore fresh looks</button>
+              <button
+                type="button"
+                className="btn-secondary py-2 text-xs"
+                onClick={() => navigate("/studio")}
+              >
+                Explore fresh looks
+              </button>
             </div>
           )}
 
           <Strip entries={entries} />
 
-          <ol className="space-y-4 pb-8">
+          <ol className="space-y-3 pb-6">
             {entries.map((e) => (
-              <li key={e.id} className="rounded-3xl bg-white border border-gray-100 p-5 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <li
+                key={e.id}
+                className="card flex flex-col justify-between gap-4 p-4 sm:flex-row sm:items-center sm:p-5"
+              >
                 <div className="flex items-center gap-4">
-                  <div className="w-24 shrink-0">
-                    <p className="font-display text-xl font-bold text-ink">{formatShort(e.worn_at)}</p>
-                    <p className="text-xs font-semibold text-black/40">{e.occasion}</p>
+                  <div className="w-20 shrink-0">
+                    <p className="font-display text-lg font-normal leading-tight text-ink">
+                      {formatShort(e.worn_at)}
+                    </p>
+                    <p className="text-[11px] text-ink-faint">{e.occasion}</p>
                   </div>
 
-                  <div className="flex gap-2 overflow-x-auto no-scrollbar">
+                  <div className="no-scrollbar flex gap-2 overflow-x-auto">
                     {e.outfit.items.slice(0, 4).map((it) => (
-                      <GarmentImage key={it.id} item={it} className="h-16 w-16 rounded-xl shrink-0" />
+                      <GarmentImage
+                        key={it.id}
+                        item={it}
+                        className="h-14 w-14 shrink-0 rounded-lg"
+                      />
                     ))}
                   </div>
                 </div>
 
                 <div className="text-left sm:text-right">
-                  <div className="mb-1.5 flex flex-wrap sm:justify-end gap-1.5">
-                    <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold ${e.recently_worn ? "bg-coral-tint text-[#F46A6A]" : "bg-[#D7F0DC] text-[#215E39]"}`}>
+                  <div className="mb-1.5 flex flex-wrap gap-1.5 sm:justify-end">
+                    <span
+                      className={`rounded px-2 py-0.5 text-[10px] font-medium ${
+                        e.recently_worn
+                          ? "bg-accent-tint text-accent"
+                          : "bg-canvas text-ink-soft"
+                      }`}
+                    >
                       {e.recently_worn ? "Worn recently" : "Not worn lately"}
                     </span>
-                    {e.repeated && <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-gray-100 text-black/60">Repeated ×{e.repeat_count}</span>}
+                    {e.repeated && (
+                      <span className="rounded bg-canvas px-2 py-0.5 text-[10px] font-medium text-ink-soft">
+                        Repeated ×{e.repeat_count}
+                      </span>
+                    )}
                   </div>
-                  <p className="font-bold text-sm text-ink">{e.outfit.outfit_name}</p>
-                  <p className="text-xs text-black/45">{e.outfit.items.map((i) => i.item_name).join(" · ")}</p>
+                  <p className="text-sm font-semibold text-ink">{e.outfit.outfit_name}</p>
+                  <p className="mt-0.5 text-[11px] text-ink-faint">
+                    {e.outfit.items.map((i) => i.item_name).join(" · ")}
+                  </p>
                 </div>
               </li>
             ))}

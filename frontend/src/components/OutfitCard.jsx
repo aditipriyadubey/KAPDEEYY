@@ -11,41 +11,44 @@ export default function OutfitCard({ outfit, index, state = {}, busy = false, on
   const { saved = false, rejected = false, wornToday = false } = state;
   return (
     <article
-      className={`playful-card flex flex-col p-4 sm:p-5 transition-all duration-300 ${
-        rejected ? "opacity-60" : "hover:-translate-y-1 hover:shadow-card-hover"
+      className={`card flex flex-col p-4 transition-colors sm:p-5 ${
+        rejected ? "opacity-60" : "hover:border-ink/25"
       }`}
     >
       <div className="flex items-center justify-between">
-        <span className="text-[11px] font-bold text-black/40 uppercase tracking-wider">
-          Outfit {String(index + 1).padStart(2, "0")}
+        <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-ink-faint">
+          Look {String(index + 1).padStart(2, "0")}
         </span>
-        <span className="rounded-full bg-[#FFF2F1] text-[#F46A6A] text-[11px] font-bold px-2.5 py-0.5">
-          {outfit.occasion}
-        </span>
+        {outfit.occasion && <span className="tag">{outfit.occasion}</span>}
       </div>
 
-      <h3 className="mt-1 text-lg sm:text-xl font-bold text-ink">{outfit.outfit_name}</h3>
+      <h3 className="mt-1 text-lg font-semibold text-ink">{outfit.outfit_name}</h3>
 
-      <OutfitCollage items={outfit.items} showLabels={false} className="mt-3.5" />
+      <div className="mt-3.5 rounded-lg border border-line bg-canvas p-2">
+        <OutfitCollage items={outfit.items} showLabels={false} />
+      </div>
 
-      {/* Playful Category / Style Tags */}
       <div className="mt-3.5 flex flex-wrap gap-1.5">
         {[...new Set(outfit.items.map((i) => i.category))].map((c) => (
-          <span key={c} className="rounded-full bg-[#F1ECFB] text-[#7C5AC2] text-[10px] font-bold px-2.5 py-0.5">
+          <span key={c} className="tag">
             {c}
           </span>
         ))}
       </div>
 
-      <p className="mt-3 flex-1 text-xs text-black/60 leading-relaxed">{outfit.styling_explanation}</p>
+      <p className="mt-3 flex-1 text-xs leading-relaxed text-ink-soft">
+        {outfit.styling_explanation}
+      </p>
 
-      <div className="mt-3 pt-2 border-t border-[#F2ECEE] flex items-center justify-between text-xs text-black/45">
-        <span>Style Match</span>
-        <span className="font-extrabold text-[#F46A6A] text-sm">{outfit.recommendation_score}/100</span>
+      <div className="mt-3 flex items-center justify-between border-t border-line pt-2.5 text-xs text-ink-soft">
+        <span>Style match</span>
+        <span className="text-sm font-semibold text-ink">
+          {outfit.recommendation_score}/100
+        </span>
       </div>
 
       {rejected && (
-        <p className="mt-2 rounded-xl bg-coral-tint px-3 py-1.5 text-[11px] font-semibold text-coral-deep">
+        <p className="mt-2 rounded border border-danger/20 bg-danger-tint px-3 py-1.5 text-[11px] font-medium text-danger">
           Combination noted — will rank lower in future.
         </p>
       )}
@@ -53,17 +56,25 @@ export default function OutfitCard({ outfit, index, state = {}, busy = false, on
       <div className="mt-3.5 flex flex-wrap gap-2">
         <button
           type="button"
-          className="flex-1 py-1.5 rounded-full border border-gray-200 text-xs font-bold text-black/70 hover:bg-gray-50 flex items-center justify-center gap-1 transition-colors"
+          className={`inline-flex flex-1 items-center justify-center gap-1 rounded-lg border py-1.5 text-xs font-medium transition-colors ${
+            saved
+              ? "border-accent/30 bg-accent-tint text-accent"
+              : "border-line text-ink-soft hover:border-ink/30 hover:text-ink"
+          }`}
           disabled={busy || saved}
           onClick={() => onSave(outfit)}
         >
-          {saved ? <BookmarkCheck className="h-3.5 w-3.5 text-[#F46A6A]" /> : <Bookmark className="h-3.5 w-3.5" />}
+          {saved ? (
+            <BookmarkCheck className="h-3.5 w-3.5" />
+          ) : (
+            <Bookmark className="h-3.5 w-3.5" />
+          )}
           {saved ? "Saved" : "Save"}
         </button>
 
         <button
           type="button"
-          className="px-3 py-1.5 rounded-full border border-gray-200 text-xs font-bold text-black/50 hover:bg-gray-50 flex items-center justify-center transition-colors"
+          className="flex items-center justify-center rounded-lg border border-line px-3 py-1.5 text-ink-faint transition-colors hover:border-ink/30 hover:text-ink"
           disabled={busy || rejected}
           onClick={() => onNotForMe(outfit)}
           title="Not for me"
@@ -73,12 +84,12 @@ export default function OutfitCard({ outfit, index, state = {}, busy = false, on
 
         <button
           type="button"
-          className="flex-1 py-1.5 rounded-full bg-[#F46A6A] text-xs font-bold text-white shadow-2xs hover:bg-[#E05252] flex items-center justify-center gap-1 transition-colors"
+          className="inline-flex flex-1 items-center justify-center gap-1 rounded-lg bg-accent py-1.5 text-xs font-medium text-white transition-colors hover:bg-accent-hover disabled:opacity-60"
           disabled={busy || wornToday}
           onClick={() => onWorn(outfit)}
         >
           <Check className="h-3.5 w-3.5" />
-          {wornToday ? "Worn ✓" : "Mark worn"}
+          {wornToday ? "Worn" : "Mark worn"}
         </button>
       </div>
     </article>

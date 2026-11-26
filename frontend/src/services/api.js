@@ -1,238 +1,269 @@
-
-import { authConfigured } from "./supabase";
 import { http } from "./http";
-import * as mockApi from "../mocks/mockApi";
-import { MOCK_USER } from "../mocks/data";
 
-// Profile
+// The media endpoint returns protected, token-signed URLs. Relative URLs are
+// resolved against the API host so <img> loads work in dev and in production.
+const API_ORIGIN = (http.defaults.baseURL || "").replace(/\/api\/?$/, "");
+
+function withImage(item) {
+  if (!item) return item;
+  const url = item.image_url;
+  if (url && url.startsWith("/")) return { ...item, image_url: `${API_ORIGIN}${url}` };
+  return item;
+}
+
+function withImages(items) {
+  return (items || []).map(withImage);
+}
+
+function hydrateOutfit(outfit, wardrobeById) {
+  const items = (outfit.items || []).map((item) => {
+    const fresh = wardrobeById?.get(item.id);
+    return withImage({ ...item, image_url: fresh?.image_url ?? item.image_url });
+  });
+  return { ...outfit, items };
+}
+
+// ── Profile ───────────────────────────────────────────────────────
 export async function getProfile() {
-  if (!authConfigured) return mockApi.getProfile();
-
   const res = await http.get("/profile");
   return res.data;
 }
 
 export async function updateProfile(patch) {
   const body = typeof patch === "string" ? { full_name: patch } : patch;
-
-  if (!authConfigured) {
-    Object.assign(MOCK_USER, body);
-    return { ...MOCK_USER };
-  }
-
   const res = await http.put("/profile", body);
   return res.data;
 }
 
-// Wardrobe
+// ── Wardrobe ──────────────────────────────────────────────────────
 export async function getWardrobe() {
-  if (!authConfigured) return mockApi.getWardrobe();
-
   const res = await http.get("/wardrobe");
-  return res.data.map((item) => ({
-    ...item,
-    times_worn: item.times_worn ?? 0,
-  }));
+  return withImages(res.data).map((item) => ({ ...item, times_worn: item.times_worn ?? 0 }));
+}
+
+export async function uploadWardrobeImage(file) {
+  const form = new FormData();
+  form.append("file", file);
+  const res = await http.post("/wardrobe/upload", form);
+  return withImage(res.data);
 }
 
 export async function addWardrobeItem(payload) {
-  if (!authConfigured) return mockApi.addWardrobeItem(payload);
-
   const res = await http.post("/wardrobe", payload);
-  return { ...res.data, times_worn: 0 };
+  return withImage({ ...res.data, times_worn: res.data.times_worn ?? 0 });
+}
+
+export async function analyzeWardrobeItem(id) {
+  // Segmentation on CPU can take a while; allow more than the default timeout.
+  const res = await http.post(`/wardrobe/${id}/analyze`, null, { timeout: 180000 });
+  return { ...res.data, item: withImage(res.data.item) };
 }
 
 export async function updateWardrobeItem(id, patch) {
-  if (!authConfigured) return mockApi.updateWardrobeItem(id, patch);
-
   const res = await http.patch(`/wardrobe/${id}`, patch);
-  return { ...res.data, times_worn: 0 };
+  return withImage(res.data);
 }
 
 export async function deleteWardrobeItem(id) {
-  if (!authConfigured) return mockApi.deleteWardrobeItem(id);
-
   const res = await http.delete(`/wardrobe/${id}`);
   return res.data;
 }
 
-// Outfit generation using real wardrobe items
-const normalize = (value) =>
-  String(value || "").trim().toLowerCase();
-
-async function generateAndRegister(generatorPromise) {
-  const result = await generatorPromise;
-
-  // Keep demo mode unchanged
-  if (!authConfigured) return result;
-
-  // Fetch the user's actual wardrobe
-  const wardrobe = await getWardrobe();
-  const registeredOutfits = [];
-
-  for (const template of result.outfits || []) {
-    const usedIds = new Set();
-    const matchedItems = [];
-
-    for (const demoItem of template.items || []) {
-      const category = normalize(demoItem.category);
-      const name = normalize(demoItem.item_name);
-      const subcategory = normalize(demoItem.subcategory);
-
-      // First: exact item name and category
-      let match = wardrobe.find(
-        (item) =>
-          !usedIds.has(item.id) &&
-          normalize(item.category) === category &&
-          normalize(item.item_name) === name
-      );
-
-      // Second: matching subcategory and category
-      if (!match && subcategory) {
-        match = wardrobe.find(
-          (item) =>
-            !usedIds.has(item.id) &&
-            normalize(item.category) === category &&
-            normalize(item.subcategory) === subcategory
-        );
-      }
-
-      // Third: matching category only
-      if (!match) {
-        match = wardrobe.find(
-          (item) =>
-            !usedIds.has(item.id) &&
-            normalize(item.category) === category
-        );
-      }
-
-      // Skip incomplete outfits
-      if (!match) {
-        matchedItems.length = 0;
-        break;
-      }
-
-      matchedItems.push(match);
-      usedIds.add(match.id);
-    }
-
-    if (
-      matchedItems.length === 0 ||
-      matchedItems.length !== (template.items || []).length
-    ) {
-      continue;
-    }
-
-    // Register outfit using actual Supabase wardrobe IDs
-    const payload = {
-      outfit_name: template.outfit_name,
-      occasion: template.occasion,
-      recommendation_score: template.recommendation_score,
-      styling_explanation: template.styling_explanation,
-      wardrobe_item_ids: matchedItems.map((item) => item.id),
-    };
-
-    const response = await http.post("/outfits/register", payload);
-    registeredOutfits.push(response.data);
-  }
-
-  return {
-    ...result,
-    outfits: registeredOutfits,
-  };
-}
-
-export async function generateOutfits(occasion) {
-  if (!authConfigured) return mockApi.generateOutfits(occasion);
-
-  return generateAndRegister(mockApi.generateOutfits(occasion));
-}
-
-export async function remixOutfits(occasion) {
-  if (!authConfigured) return mockApi.remixOutfits(occasion);
-
-  return generateAndRegister(mockApi.remixOutfits(occasion));
-}
-
-export async function surpriseOutfits() {
-  if (!authConfigured) return mockApi.surpriseOutfits();
-
-  return generateAndRegister(mockApi.surpriseOutfits());
-}
-
-export async function getTodayOutfit() {
-  return mockApi.getTodayOutfit();
-}
-
-// Saved Outfits
-export async function getSavedOutfits() {
-  if (!authConfigured) return mockApi.getSavedOutfits();
-
-  const res = await http.get("/outfits/saved");
+export async function discardWardrobeUpload(path) {
+  const res = await http.delete("/wardrobe/upload", { params: { path } });
   return res.data;
 }
 
-export async function saveOutfit(id) {
-  if (!authConfigured) return mockApi.saveOutfit(id);
+// ── Outfits ───────────────────────────────────────────────────────
+/**
+ * Ask the backend for real combinations from the user's wardrobe, then persist
+ * each one via /outfits/register so Save / Mark worn have a real outfit id.
+ * `seed` rotates equally-scored combinations, which is what makes Remix work.
+ */
+async function recommendationOutfits(occasion, seed = 0) {
+  const params = {};
+  if (occasion) params.occasion = occasion;
+  if (seed) params.seed = seed;
 
+  const [recs, wardrobe] = await Promise.all([
+    http.get("/outfits/recommendations", { params }),
+    getWardrobe(),
+  ]);
+  const byId = new Map(wardrobe.map((item) => [item.id, item]));
+  const outfits = [];
+
+  for (const rec of recs.data.outfits || []) {
+    const items = rec.items || [];
+    if (!items.length) continue;
+    const payload = {
+      outfit_name: (rec.name || `${String(rec.type || "outfit").replace(/_/g, " ")} combination`).slice(0, 120),
+      occasion: rec.occasion || null,
+      recommendation_score: rec.score ?? null,
+      styling_explanation: rec.explanation || null,
+      wardrobe_item_ids: items.map((item) => item.id),
+    };
+    const res = await http.post("/outfits/register", payload);
+    outfits.push(hydrateOutfit(res.data, byId));
+  }
+
+  return { outfits, info: recs.data.algorithm_info || null };
+}
+
+export async function generateOutfits(occasion, seed = 0) {
+  const { outfits, info } = await recommendationOutfits(occasion, seed);
+  return { mode: "generate", occasion, outfits, info };
+}
+
+export async function remixOutfits(occasion, seed = 1) {
+  const { outfits, info } = await recommendationOutfits(occasion, seed);
+  return { mode: "remix", occasion, outfits, info };
+}
+
+export async function surpriseOutfits(seed = 0) {
+  const { outfits, info } = await recommendationOutfits(null, seed);
+  return { mode: "surprise", occasion: null, outfits, info };
+}
+
+export async function getSavedOutfits() {
+  const [res, wardrobe] = await Promise.all([http.get("/outfits/saved"), getWardrobe()]);
+  const byId = new Map(wardrobe.map((item) => [item.id, item]));
+  return (res.data || []).map((outfit) => hydrateOutfit(outfit, byId));
+}
+
+export async function saveOutfit(id) {
   const res = await http.post(`/outfits/${id}/save`);
   return res.data;
 }
 
 export async function removeSavedOutfit(id) {
-  if (!authConfigured) return mockApi.removeSavedOutfit(id);
-
   const res = await http.delete(`/outfits/${id}/save`);
   return res.data;
 }
 
-// Outfit feedback and wear tracking
 export async function markNotForMe(id) {
-  if (!authConfigured) return mockApi.markNotForMe(id);
-
   const res = await http.post(`/outfits/${id}/feedback`);
   return res.data;
 }
 
 export async function markWorn(id) {
-  if (!authConfigured) return mockApi.markWorn(id);
-
   const res = await http.post(`/outfits/${id}/worn`);
   return res.data;
 }
 
-// Outfit IDs
 export async function getSavedIds() {
-  if (!authConfigured) return mockApi.getSavedIds();
-
   const res = await http.get("/outfits/saved-ids");
   return res.data;
 }
 
 export async function getWornTodayIds() {
-  if (!authConfigured) return mockApi.getWornTodayIds();
-
   const res = await http.get("/outfits/worn-today-ids");
   return res.data;
 }
 
-// Outfit history
 export async function getHistory() {
-  if (!authConfigured) return mockApi.getHistory();
-
-  const res = await http.get("/outfits/history");
-  return res.data;
-}
-
-// Remaining demo-mode functions
-export async function getWardrobeStats() {
-  return mockApi.getWardrobeStats();
+  const [res, wardrobe] = await Promise.all([http.get("/outfits/history"), getWardrobe()]);
+  const byId = new Map(wardrobe.map((item) => [item.id, item]));
+  return (res.data || []).map((entry) => ({
+    ...entry,
+    outfit: hydrateOutfit(entry.outfit, byId),
+  }));
 }
 
 export async function getInsights() {
-  return mockApi.getInsights();
+  // The endpoint returns item ids + wear counts. Join them with the wardrobe so
+  // the insights cards can show the real garment images and names.
+  const [res, wardrobe] = await Promise.all([http.get("/outfits/insights"), getWardrobe()]);
+  const byId = new Map(wardrobe.map((item) => [item.id, item]));
+
+  const hydrate = (rows) =>
+    (rows || [])
+      .map((row) => {
+        const item = byId.get(row.id);
+        return item ? { ...item, times_worn: row.times_worn ?? item.times_worn ?? 0 } : null;
+      })
+      .filter(Boolean);
+
+  return {
+    ...res.data,
+    favourite_items: hydrate(res.data.favourite_items),
+    underused_items: hydrate(res.data.underused_items),
+  };
+}
+
+export async function getWardrobeStats() {
+  // The dashboard cards read total_items / saved_outfits / worn_this_month.
+  // Counts come from real data only (no placeholder numbers).
+  const [wardrobe, savedIds] = await Promise.all([getWardrobe(), getSavedIds()]);
+  let wornThisMonth = 0;
+  try {
+    const now = new Date();
+    const history = await getHistory();
+    wornThisMonth = (history || []).filter((entry) => {
+      const worn = new Date(entry.worn_at);
+      return worn.getFullYear() === now.getFullYear() && worn.getMonth() === now.getMonth();
+    }).length;
+  } catch {
+    // Wear history is additive information; a failure must not blank the page.
+  }
+  return {
+    total_items: wardrobe.length,
+    saved_outfits: savedIds.length,
+    worn_this_month: wornThisMonth,
+  };
 }
 
 export async function getAiStatus() {
-  return mockApi.getAiStatus();
+  const res = await http.get("/ai/status");
+  return res.data;
+}
+
+export async function getTodayOutfit() {
+  // Today shows the most recently generated saved outfit, or nothing.
+  const saved = await getSavedOutfits();
+  return saved[0] || null;
+}
+
+/**
+ * Full Phase 3 flow: upload original -> persist metadata -> run segmentation.
+ * Returns { item, segmentationError }. The item is always the real persisted row;
+ * segmentationError is set (never swallowed) when the AI worker/segmentation fails.
+ */
+export async function createGarment({ file, metadata, onStage }) {
+  const stage = (message) => {
+    if (typeof onStage === "function") onStage(message);
+  };
+
+  stage("Uploading photo...");
+  const uploaded = await uploadWardrobeImage(file);
+  let created;
+  try {
+    stage("Saving item details...");
+    created = await addWardrobeItem({ ...metadata, original_image_path: uploaded.path });
+  } catch (err) {
+    // Do not leave an orphaned original behind if the row could not be saved.
+    try { await discardWardrobeUpload(uploaded.path); } catch {}
+    throw err;
+  }
+
+  try {
+    stage("Detecting the garment with RF-DETR...");
+    const analysis = await analyzeWardrobeItem(created.id);
+    stage("Finishing the cutout...");
+    // AI suggestions are only used to fill fields the user left empty.
+    const suggestions = analysis.suggestions || {};
+    const patch = {};
+    if (!metadata.item_name && suggestions.item_name) patch.item_name = suggestions.item_name;
+    if (!metadata.subcategory && suggestions.subcategory) patch.subcategory = suggestions.subcategory;
+    if (!metadata.colour && suggestions.colour) patch.colour = suggestions.colour;
+    if (!metadata.style && suggestions.style) patch.style = suggestions.style;
+    if (!metadata.category && suggestions.category) patch.category = suggestions.category;
+
+    let item = analysis.item;
+    if (Object.keys(patch).length) {
+      try { item = await updateWardrobeItem(created.id, patch); } catch {}
+    }
+    return { item, segmentationError: null };
+  } catch (err) {
+    return { item: created, segmentationError: err?.response?.data?.detail || err?.message || "Segmentation failed" };
+  }
 }

@@ -16,3 +16,21 @@ models/*
 uploads/
 tmp/
 .DS_Store
+
+# Local-only auth secret and user-uploaded images
+backend/.local/
+backend/data/uploads/
+
+# Local runtime artifacts (logs, browser profiles, data exports)
+backend/data/*.log
+backend/data/.chrome-*/
+backend/data/demo_images/
+backend/data/backups/
+backend/data/backup_pre_migration/
+backend/data/.tmp_migration_test/
+
+# Local SQLite database files
+backend/data/*.db
+backend/data/*.db-*
+backend/data/*.sqlite
+backend/data/*.sqlite-*

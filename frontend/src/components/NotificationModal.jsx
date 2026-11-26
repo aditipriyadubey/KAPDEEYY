@@ -1,7 +1,25 @@
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Bell, CheckCheck, Clock, RotateCcw, Trash2, X } from "lucide-react";
+import {
+  Bell,
+  CheckCheck,
+  Clock,
+  Layers,
+  Shirt,
+  Sun,
+  Trash2,
+  X,
+} from "lucide-react";
 import { useNotifications } from "../context/NotificationContext";
+
+function NotificationIcon({ type }) {
+  const Icon = type === "shirt" ? Shirt : type === "weather" ? Sun : Layers;
+  return (
+    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-line bg-canvas text-ink-soft">
+      <Icon className="h-4 w-4" strokeWidth={1.8} />
+    </span>
+  );
+}
 
 export default function NotificationModal() {
   const {
@@ -13,12 +31,10 @@ export default function NotificationModal() {
     markAllAsRead,
     dismiss,
     clearAll,
-    resetDaily,
   } = useNotifications();
 
   const navigate = useNavigate();
 
-  // Close on Escape key
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (e.key === "Escape" && isOpen) closeNotifications();
@@ -26,6 +42,15 @@ export default function NotificationModal() {
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [isOpen, closeNotifications]);
+
+  useEffect(() => {
+    if (!isOpen) return undefined;
+    const previous = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = previous;
+    };
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
@@ -38,57 +63,49 @@ export default function NotificationModal() {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center sm:items-center p-3 sm:p-4 bg-black/40 backdrop-blur-xs select-none animate-in fade-in duration-200">
-      {/* Backdrop overlay */}
+    <div className="fixed inset-0 z-50 flex items-start justify-center p-3 sm:items-center sm:p-4">
       <div
-        className="fixed inset-0 -z-10"
+        className="absolute inset-0 bg-ink/40"
         onClick={closeNotifications}
         aria-hidden="true"
       />
 
-      {/* Modal Dialog Card */}
       <div
         role="dialog"
         aria-modal="true"
-        aria-label="Daily Notifications"
-        className="relative w-full max-w-md bg-white rounded-[32px] overflow-hidden shadow-2xl border-2 border-[#FCE4EC] flex flex-col max-h-[85vh] mt-12 sm:mt-0 animate-in zoom-in-95 duration-200"
+        aria-label="Notifications"
+        className="relative mt-10 flex max-h-[85vh] w-full max-w-md animate-slide-up flex-col overflow-hidden rounded-xl border border-line bg-surface shadow-lift sm:mt-0"
       >
-        {/* Header */}
-        <div className="p-5 pb-3.5 border-b border-[#F5E6EB] flex items-center justify-between shrink-0 bg-[#FFF7F9]">
+        <div className="flex items-center justify-between border-b border-line p-4">
           <div className="flex items-center gap-2.5">
-            <span className="flex h-9 w-9 items-center justify-center rounded-2xl bg-[#FFEAEF] text-[#FF5C77] shadow-2xs">
-              <Bell className="h-4.5 w-4.5" />
+            <span className="flex h-9 w-9 items-center justify-center rounded-lg border border-line text-ink">
+              <Bell className="h-4 w-4" strokeWidth={1.8} />
             </span>
             <div>
-              <h2 className="text-lg font-extrabold text-[#1F1D1E] leading-tight flex items-center gap-2">
-                Notifications
-                {unreadCount > 0 && (
-                  <span className="rounded-full bg-[#FF5C77] text-white text-[10px] font-black px-2 py-0.5">
-                    {unreadCount} new
-                  </span>
-                )}
-              </h2>
-              <p className="text-[11px] font-bold text-[#8C7A82]">
-                {unreadCount > 0 ? `${unreadCount} unread daily alerts` : "You're all caught up!"}
+              <h2 className="text-sm font-semibold text-ink">Notifications</h2>
+              <p className="text-[11px] text-ink-faint">
+                {unreadCount > 0
+                  ? `${unreadCount} unread`
+                  : "You're all caught up"}
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-2">
             {unreadCount > 0 && (
               <button
                 type="button"
                 onClick={markAllAsRead}
-                className="flex items-center gap-1 text-[11px] font-extrabold text-[#FF5C77] hover:underline px-2 py-1"
+                className="flex items-center gap-1 text-[11px] font-medium text-ink-soft hover:text-ink"
               >
                 <CheckCheck className="h-3.5 w-3.5" />
-                <span>Mark read</span>
+                Mark read
               </button>
             )}
             <button
               type="button"
               onClick={closeNotifications}
-              className="flex h-8 w-8 items-center justify-center rounded-full bg-white border border-[#FCE4EC] text-black/50 hover:text-black hover:bg-gray-100 transition-colors"
+              className="flex h-8 w-8 items-center justify-center rounded-lg border border-line text-ink-soft transition-colors hover:text-ink"
               aria-label="Close"
             >
               <X className="h-4 w-4" />
@@ -96,108 +113,95 @@ export default function NotificationModal() {
           </div>
         </div>
 
-        {/* Quick Sub-toolbar */}
         {notifications.length > 0 && (
-          <div className="flex items-center justify-between px-5 py-1.5 bg-[#FAF8F9] border-b border-[#F0EAEB] text-[11px]">
-            <span className="text-black/45 font-bold">
-              {notifications.length} daily alert{notifications.length === 1 ? "" : "s"}
+          <div className="flex items-center justify-between border-b border-line bg-canvas px-4 py-1.5 text-[11px]">
+            <span className="text-ink-faint">
+              {notifications.length} notification
+              {notifications.length === 1 ? "" : "s"}
             </span>
             <button
               type="button"
               onClick={clearAll}
-              className="flex items-center gap-1 font-bold text-black/40 hover:text-red-500 transition-colors"
+              className="flex items-center gap-1 font-medium text-ink-faint hover:text-danger"
             >
               <Trash2 className="h-3 w-3" />
-              <span>Clear all</span>
+              Clear all
             </button>
           </div>
         )}
 
-        {/* Notifications List */}
-        <div className="flex-1 overflow-y-auto no-scrollbar p-3 sm:p-4 space-y-2.5">
+        <div className="flex-1 overflow-y-auto p-3 sm:p-4">
           {notifications.length === 0 ? (
-            <div className="text-center py-10 px-4 space-y-3">
-              <span className="text-4xl block">✨</span>
-              <h3 className="font-extrabold text-[#1F1D1E] text-base">All caught up!</h3>
-              <p className="text-xs text-black/55 max-w-xs mx-auto">
-                No new daily notifications. Fresh outfit picks and styling advice arrive every morning!
+            <div className="px-4 py-12 text-center">
+              <Bell className="mx-auto h-6 w-6 text-ink-faint" strokeWidth={1.6} />
+              <h3 className="mt-4 text-sm font-semibold text-ink">
+                No notifications
+              </h3>
+              <p className="mx-auto mt-1.5 max-w-xs text-xs leading-relaxed text-ink-soft">
+                Outfit and wardrobe updates will appear here when there is
+                something new.
               </p>
-              <button
-                type="button"
-                onClick={resetDaily}
-                className="mt-2 inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-[#FFEAEF] text-[#FF5C77] text-xs font-bold hover:bg-[#FFD9E3] transition-colors"
-              >
-                <RotateCcw className="h-3 w-3" />
-                <span>Restore daily alerts</span>
-              </button>
             </div>
           ) : (
-            notifications.map((item) => (
-              <div
-                key={item.id}
-                onClick={() => handleItemClick(item)}
-                className={`group relative cursor-pointer rounded-2xl p-3.5 transition-all flex gap-3 border ${
-                  item.read
-                    ? "bg-white border-[#F2ECEE] opacity-75 hover:opacity-100 hover:border-gray-300"
-                    : "bg-[#FFF9FA] border-[#FFD6DF] shadow-2xs hover:shadow-xs"
-                }`}
-              >
-                <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white border border-[#F2ECEE] text-2xl shadow-2xs shrink-0">
-                  {item.iconType === "shirt" ? "👗" : item.iconType === "weather" ? "☀️" : "✨"}
-                </span>
+            <ul className="space-y-2">
+              {notifications.map((item) => (
+                <li key={item.id}>
+                  <div
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => handleItemClick(item)}
+                    onKeyDown={(e) => e.key === "Enter" && handleItemClick(item)}
+                    className={`group relative flex cursor-pointer gap-3 rounded-lg border p-3 transition-colors ${
+                      item.read
+                        ? "border-line bg-surface hover:border-ink/25"
+                        : "border-line bg-canvas"
+                    }`}
+                  >
+                    <NotificationIcon type={item.iconType} />
 
-                <div className="flex-1 min-w-0 pr-4">
-                  <div className="flex items-center justify-between gap-2">
-                    <span className={`text-[10px] font-black px-2 py-0.5 rounded-full ${item.badgeColor || "bg-pink-100 text-pink-700"}`}>
-                      {item.category}
-                    </span>
-                    <span className="text-[10px] font-bold text-black/40 flex items-center gap-1 shrink-0">
-                      <Clock className="h-3 w-3" />
-                      {item.time}
-                    </span>
+                    <div className="min-w-0 flex-1 pr-5">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-ink-faint">
+                          {item.category}
+                        </span>
+                        <span className="flex shrink-0 items-center gap-1 text-[10px] text-ink-faint">
+                          <Clock className="h-3 w-3" />
+                          {item.time}
+                        </span>
+                      </div>
+                      <h3 className="mt-1 truncate text-sm font-semibold text-ink">
+                        {item.title}
+                      </h3>
+                      <p className="mt-0.5 text-xs leading-snug text-ink-soft">
+                        {item.message}
+                      </p>
+                      {item.actionPath && (
+                        <span className="mt-1.5 inline-block text-[11px] font-medium text-accent">
+                          View →
+                        </span>
+                      )}
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        dismiss(item.id);
+                      }}
+                      className="absolute right-2 top-2 rounded p-1 text-ink-faint opacity-0 transition-opacity hover:text-ink group-hover:opacity-100"
+                      aria-label="Dismiss"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+
+                    {!item.read && (
+                      <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-accent" />
+                    )}
                   </div>
-
-                  <h3 className="text-sm font-extrabold text-[#1F1D1E] mt-1 truncate">
-                    {item.title}
-                  </h3>
-
-                  <p className="text-xs text-black/65 font-semibold mt-0.5 leading-snug">
-                    {item.message}
-                  </p>
-
-                  {item.actionPath && (
-                    <span className="mt-1.5 inline-block text-[11px] font-extrabold text-[#FF5C77] hover:underline">
-                      Tap to view →
-                    </span>
-                  )}
-                </div>
-
-                {/* Dismiss X */}
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    dismiss(item.id);
-                  }}
-                  className="absolute top-2.5 right-2.5 opacity-0 group-hover:opacity-100 p-1 rounded-full text-black/35 hover:text-black hover:bg-black/5 transition-all"
-                  aria-label="Dismiss"
-                >
-                  <X className="h-3 w-3" />
-                </button>
-
-                {!item.read && (
-                  <span className="h-2 w-2 rounded-full bg-[#FF5C77] shrink-0 mt-1" />
-                )}
-              </div>
-            ))
+                </li>
+              ))}
+            </ul>
           )}
-        </div>
-
-        {/* Footer */}
-        <div className="p-3 bg-[#FFF7F9] border-t border-[#F5E6EB] text-center">
-          <p className="text-[11px] font-bold text-black/40">
-            Daily outfit tips refreshed every morning ☀️
-          </p>
         </div>
       </div>
     </div>

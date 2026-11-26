@@ -1,170 +1,169 @@
-
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
-import { authConfigured, supabase } from "../services/supabase";
-import { setTokenProvider } from "../services/http";
-import { getProfile } from "../services/api";
+import { http, setTokenProvider } from "../services/http";
 
 const AuthContext = createContext(null);
+const TOKEN_KEY = "kapdeeyy_jwt";
 
-const DEMO_USER = {
-  id: "demo",
-  email: "demo@closetremix.local",
-  full_name: "Aditi Sharma",
-  demo: true,
-};
+function getToken() {
+  try {
+    return localStorage.getItem(TOKEN_KEY);
+  } catch {
+    return null;
+  }
+}
 
-function toUser(session) {
-  const u = session?.user;
-  if (!u) return null;
+function storeToken(token) {
+  try {
+    localStorage.setItem(TOKEN_KEY, token);
+  } catch {}
+}
 
+function clearToken() {
+  try {
+    localStorage.removeItem(TOKEN_KEY);
+  } catch {}
+}
+
+/** Decode a base64url JWT payload without verifying it (the server verifies). */
+function decodePayload(token) {
+  const part = token.split(".")[1];
+  const normalised = part.replace(/-/g, "+").replace(/_/g, "/");
+  const padded = normalised + "=".repeat((4 - (normalised.length % 4)) % 4);
+  return JSON.parse(atob(padded));
+}
+
+function sessionFromToken(token) {
+  const payload = decodePayload(token);
+  if (!payload?.sub) throw new Error("Invalid token");
   return {
-    id: u.id,
-    email: u.email,
-    full_name: u.user_metadata?.full_name || u.email?.split("@")[0] || "there",
-    demo: false,
+    access_token: token,
+    user: { id: payload.sub, email: payload.email || null },
   };
 }
 
 export function friendlyAuthError(err) {
   const msg = (err?.message || "").toLowerCase();
-  if (msg.includes("invalid login")) return "That email and password don't match.";
-  if (msg.includes("already registered")) return "An account with this email already exists. Try signing in.";
-  if (msg.includes("email not confirmed")) return "Please confirm your email first — check your inbox.";
-  if (msg.includes("password") && msg.includes("characters")) return "Password must be at least 6 characters.";
+  if (msg.includes("incorrect email or password") || msg.includes("invalid login"))
+    return "That email and password don't match.";
+  if (msg.includes("already exists") || msg.includes("already registered"))
+    return "An account with this email already exists. Try signing in.";
+  if (msg.includes("password") && msg.includes("characters"))
+    return "Password must be at least 6 characters.";
   if (msg.includes("rate limit")) return "Too many attempts. Please wait a minute and try again.";
-  if (msg.includes("fetch") || msg.includes("network")) return "Can't reach the server. Check your connection.";
-  return err?.message || "Something went wrong. Please try again.";
+  if (msg.includes("network") || msg.includes("econnrefused")) return "Can't reach the server. Is the backend running?";
+  return err?.response?.data?.detail || err?.message || "Something went wrong. Please try again.";
 }
 
 export function AuthProvider({ children }) {
   const [session, setSession] = useState(null);
   const [profile, setProfile] = useState(null);
-  const [loading, setLoading] = useState(authConfigured);
-  const [demoLoggedIn, setDemoLoggedIn] = useState(() => {
-    return localStorage.getItem("closet_remix_demo_auth") === "true";
-  });
+  const [loading, setLoading] = useState(true);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
-    if (!authConfigured) return undefined;
+    setTokenProvider(async () => getToken());
+  }, []);
 
+  useEffect(() => {
     let active = true;
-
-    const loadSession = async () => {
-      const { data, error } = await supabase.auth.getSession();
-
-      if (!active) return;
-
-      if (error) {
-        setLoading(false);
-        return;
-      }
-
-      setSession(data.session);
+    const token = getToken();
+    if (!token) {
       setLoading(false);
-    };
-
-    loadSession();
-
-    const { data: sub } = supabase.auth.onAuthStateChange((_event, next) => {
-      if (!active) return;
-      setSession(next);
-      if (!next) setProfile(null);
-    });
-
-    return () => {
-      active = false;
-      sub.subscription.unsubscribe();
-    };
-  }, []);
-
-  useEffect(() => {
-    setTokenProvider(async () => {
-      if (!authConfigured) return null;
-      const { data } = await supabase.auth.getSession();
-      return data.session?.access_token ?? null;
-    });
-  }, []);
-
-  useEffect(() => {
-    let active = true;
-
-    if (!authConfigured || !session?.user) {
-      setProfile(null);
-      return undefined;
-    }
-
-    const loadProfile = async () => {
-      try {
-        const data = await getProfile();
-        if (active) setProfile(data);
-      } catch (error) {
-        console.error("Could not load backend profile:", error);
-        if (active) setProfile(null);
-      }
-    };
-
-    loadProfile();
-
-    return () => {
-      active = false;
-    };
-  }, [session?.user?.id]);
-
-  const signIn = useCallback(async (email, password) => {
-    if (!authConfigured) {
-      setDemoLoggedIn(true);
-      localStorage.setItem("closet_remix_demo_auth", "true");
       return;
     }
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) throw error;
+    try {
+      setSession(sessionFromToken(token));
+    } catch {
+      clearToken();
+      setLoading(false);
+      return;
+    }
+    // Verify the token with the backend and load the profile name.
+    (async () => {
+      try {
+        const res = await http.get("/auth/me");
+        if (!active) return;
+        setProfile(res.data);
+        setSession((current) =>
+          current ? { ...current, user: { ...current.user, full_name: res.data.full_name } } : current
+        );
+      } catch {
+        if (!active) return;
+        clearToken();
+        setSession(null);
+        setProfile(null);
+      } finally {
+        if (active) setLoading(false);
+      }
+    })();
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const signIn = useCallback(async (email, password) => {
+    setBusy(true);
+    setError(null);
+    try {
+      const res = await http.post("/auth/login", { email, password });
+      storeToken(res.data.access_token);
+      setSession(sessionFromToken(res.data.access_token));
+      try {
+        const me = await http.get("/auth/me");
+        setProfile(me.data);
+      } catch {}
+    } catch (err) {
+      setError(friendlyAuthError(err));
+      throw err;
+    } finally {
+      setBusy(false);
+    }
   }, []);
 
   const signUp = useCallback(async (fullName, email, password) => {
-    if (!authConfigured) {
-      setDemoLoggedIn(true);
-      localStorage.setItem("closet_remix_demo_auth", "true");
-      return { needsConfirmation: false };
+    setBusy(true);
+    setError(null);
+    try {
+      await http.post("/auth/register", { full_name: fullName, email, password });
+      // Registration does not return a token; log in to obtain one.
+      const res = await http.post("/auth/login", { email, password });
+      storeToken(res.data.access_token);
+      setSession(sessionFromToken(res.data.access_token));
+      setProfile({ id: null, email, full_name: fullName });
+    } catch (err) {
+      setError(friendlyAuthError(err));
+      throw err;
+    } finally {
+      setBusy(false);
     }
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: { data: { full_name: fullName } },
-    });
-    if (error) throw error;
-    return { needsConfirmation: !data.session };
   }, []);
 
   const signOut = useCallback(async () => {
-    if (authConfigured) {
-      await supabase.auth.signOut();
-    } else {
-      setDemoLoggedIn(false);
-      localStorage.removeItem("closet_remix_demo_auth");
-    }
+    clearToken();
+    setSession(null);
+    setProfile(null);
+    setError(null);
   }, []);
 
   const user = useMemo(() => {
-    if (!authConfigured) {
-      return demoLoggedIn ? DEMO_USER : null;
-    }
-
-    const baseUser = toUser(session);
-    if (!baseUser) return null;
-
-    return profile ? { ...baseUser, ...profile, demo: false } : baseUser;
-  }, [session, profile, demoLoggedIn]);
+    if (!session?.user) return null;
+    const name =
+      session.user.full_name ||
+      profile?.full_name ||
+      session.user.email?.split("@")[0] ||
+      "there";
+    return {
+      id: session.user.id,
+      email: session.user.email,
+      full_name: name,
+      demo: false,
+    };
+  }, [session, profile]);
 
   const value = useMemo(
-    () => ({
-      demoMode: !authConfigured,
-      loading,
-      user,
-      signIn,
-      signUp,
-      signOut,
-    }),
-    [user, loading, signIn, signUp, signOut]
+    () => ({ demoMode: false, loading, busy, error, user, signIn, signUp, signOut }),
+    [loading, busy, error, user, signIn, signUp, signOut]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
